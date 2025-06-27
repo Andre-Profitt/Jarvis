@@ -1,0 +1,134 @@
+# JARVIS Ecosystem Configuration
+# Central configuration for all components
+
+# System Paths (relative to ecosystem root)
+paths:
+  deployment: ./deployment
+  training_data: ./training_data
+  mcp_servers: ./mcp_servers
+  tools: ./tools
+  logs: ./logs
+  models: ./models
+  storage: ./storage
+
+# Redis Configuration
+redis:
+  host: localhost
+  port: 6379
+  password: null
+  db: 0
+  decode_responses: true
+  max_connections: 50
+
+# WebSocket Configuration
+websocket:
+  host: 0.0.0.0
+  port: 8765
+  ssl: false
+  max_connections: 100
+  heartbeat_interval: 30
+  
+# Voice Interface
+voice:
+  wake_words:
+    - "hey jarvis"
+    - "okay jarvis"
+    - "jarvis"
+  language: en-US
+  speech_rate: 175
+  volume: 0.9
+  
+# ML Model Configuration
+models:
+  base_model: "meta-llama/Llama-2-7b-hf"
+  device: "cuda" # or "cpu"
+  max_memory: "8GB"
+  cache_dir: ./models/cache
+  
+# Distributed Computing
+ray:
+  num_cpus: 8
+  num_gpus: 1
+  object_store_memory: 2000000000
+  dashboard_host: 0.0.0.0
+  dashboard_port: 8265
+  
+# Cloud Storage (optional)
+cloud_storage:
+  enabled: false
+  provider: gcs # or 'aws', 'azure'
+  bucket: jarvis-storage
+  credentials_path: null
+  
+# Security
+security:
+  enable_authentication: true
+  api_key_required: true
+  allowed_hosts:
+    - localhost
+    - 127.0.0.1
+    - 10.0.0.0/8
+  ssl_cert_path: null
+  ssl_key_path: null
+  
+# Monitoring
+monitoring:
+  enable_metrics: true
+  metrics_port: 9090
+  log_level: INFO
+  log_format: json
+  
+# Self-Improvement
+self_improvement:
+  enabled: true
+  improvement_interval: 3600 # seconds
+  min_confidence: 0.7
+  max_improvements_per_cycle: 5
+  backup_before_improvement: true
+  
+# Resource Limits
+resources:
+  max_memory_per_agent: "2GB"
+  max_cpu_per_agent: 2
+  max_agents: 20
+  max_file_size: "100MB"
+  
+# API Keys (use environment variables in production)
+api_keys:
+  openai: ${OPENAI_API_KEY}
+  # anthropic: NOT NEEDED - Using Claude Desktop MCP!
+  github: ${GITHUB_TOKEN}
+  # google: NOT NEEDED - Using Gemini CLI!
+  
+# Claude Desktop Integration
+claude_desktop:
+  use_mcp: true  # Use Model Context Protocol
+  subscription: "max_x200"  # Your subscription level
+  no_api_key_needed: true  # Direct access through desktop app
+  
+# Claude Code (Cline) Integration
+claude_code:
+  enabled: true
+  use_for_coding: true  # Prioritize for coding tasks
+  vscode_extension: true
+  
+# Google Gemini CLI Integration
+gemini:
+  use_cli: true
+  cli_path: "gemini"  # Assumes installed globally
+  models:
+    - "gemini-1.5-pro-latest"
+    - "gemini-1.5-flash"
+  use_for:
+    - "multimodal_analysis"  # Images, videos
+    - "long_context"  # 2M token context
+    - "reasoning"  # Complex reasoning tasks
+  
+# Feature Flags
+features:
+  voice_interface: true
+  device_handoff: true
+  autonomous_tools: true
+  self_modification: true
+  distributed_training: true
+  proactive_assistance: true

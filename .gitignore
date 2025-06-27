@@ -1,0 +1,68 @@
+# JARVIS Ecosystem Gitignore
+
+# IMPORTANT: Never commit API keys!
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# JARVIS Runtime
+logs/
+*.log
+.jarvis_launched
+storage/
+models/
+model_cache/
+checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Redis
+dump.rdb
+
+# MCP Servers
+mcp_servers/*/node_modules/
+mcp_servers/*/package-lock.json
+
+# Training Data (if sensitive)
+training_data/personal/
+
+# Temporary files
+*.tmp
+temp/
+tmp/
