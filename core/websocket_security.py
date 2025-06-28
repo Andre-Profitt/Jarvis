@@ -12,7 +12,7 @@ import ssl
 import secrets
 import hashlib
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, Set
+from typing import Dict, Any, Optional, Set, List
 from pathlib import Path
 import logging
 from cryptography.fernet import Fernet

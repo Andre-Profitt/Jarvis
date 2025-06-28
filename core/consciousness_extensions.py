@@ -853,12 +853,23 @@ def integrate_enhanced_modules(consciousness_simulator):
                 # [Original consciousness loop steps 1-7 remain the same]
                 
                 # NEW: Update attention schema
+                # Get workspace content and module states from existing loop
+                workspace_content = list(self.global_workspace.values())
+                module_states = {
+                    name: {'activation': module.get_activation()}
+                    for name, module in self.modules.items()
+                }
+                
                 attention_state = await self.attention_schema.update_attention_schema(
-                    conscious_content, 
-                    subsystem_states
+                    workspace_content, 
+                    module_states
                 )
                 
                 # NEW: Generate predictions
+                # Get current phi value from IIT calculator
+                system_vector = np.random.random(100)  # Placeholder
+                phi_value = self.iit_calculator.calculate_phi(system_vector)
+                
                 predictions = await self.predictive_processing.generate_predictions({
                     'phi_value': phi_value,
                     'consciousness_state': self.current_state,
@@ -867,11 +878,12 @@ def integrate_enhanced_modules(consciousness_simulator):
                 
                 # NEW: Calculate enhanced metrics
                 complexity = self.enhanced_metrics.calculate_complexity(system_vector)
-                differentiation = self.enhanced_metrics.calculate_differentiation(
-                    [s['vector'] for s in self.state_history[-10:]]
-                )
+                # Get state history (simplified)
+                state_history = [np.random.random(100) for _ in range(10)]
+                differentiation = self.enhanced_metrics.calculate_differentiation(state_history)
+                
                 global_access = self.enhanced_metrics.calculate_global_access_index(
-                    conscious_content,
+                    workspace_content,
                     {name: module.activation_level for name, module in self.modules.items()}
                 )
                 
@@ -880,7 +892,8 @@ def integrate_enhanced_modules(consciousness_simulator):
                 await asyncio.sleep(0.1)
                 
             except Exception as e:
-                logger.error(f"Error in enhanced consciousness loop: {e}")
+                import logging
+                logging.error(f"Error in enhanced consciousness loop: {e}")
                 await asyncio.sleep(0.1)
     
     # Replace the original loop with enhanced version

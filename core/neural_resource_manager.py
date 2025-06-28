@@ -82,6 +82,19 @@ class SpikeTrain:
 
 
 @dataclass
+class TaskRequirements:
+    """Requirements for a neural processing task"""
+    vision_complexity: float = 0.0
+    language_complexity: float = 0.0
+    memory_requirements: float = 0.0
+    reasoning_depth: float = 0.0
+    temporal_processing: float = 0.0
+    spatial_processing: float = 0.0
+    creativity_level: float = 0.0
+    attention_heads: int = 1
+
+
+@dataclass
 class NeuralResource:
     """Enhanced neural computational resource"""
     resource_id: str

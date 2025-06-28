@@ -55,10 +55,16 @@ ray:
   
 # Cloud Storage (optional)
 cloud_storage:
-  enabled: false
+  enabled: true
   provider: gcs # or 'aws', 'azure'
   bucket: jarvis-storage
-  credentials_path: null
+  credentials_path: ./credentials/gcs-service-account.json
+  features:
+    model_storage: true
+    memory_persistence: true
+    distributed_training: true
+    backup_enabled: true
+    versioning: true
   
 # Security
 security:

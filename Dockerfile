@@ -1,47 +1,69 @@
-FROM python:3.10-slim
-
-# Set working directory
-WORKDIR /app
+# Multi-stage Dockerfile for JARVIS Ecosystem
+FROM python:3.9-slim as builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    git \
     curl \
-    libpq-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+ENV POETRY_HOME=/opt/poetry
+ENV POETRY_VENV=/opt/poetry-venv
+ENV POETRY_VERSION=1.5.1
+RUN python3 -m venv $POETRY_VENV \
+    && $POETRY_VENV/bin/pip install -U pip setuptools \
+    && $POETRY_VENV/bin/pip install poetry==${POETRY_VERSION}
+ENV PATH="${PATH}:${POETRY_VENV}/bin"
+
+# Set work directory
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Install dependencies
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --no-root --no-dev
+
+# Production stage
+FROM python:3.9-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
     ffmpeg \
-    libsm6 \
-    libxext6 \
+    libsndfile1 \
     portaudio19-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PyTorch with CUDA support (CPU version for now)
-RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Create non-root user
+RUN useradd -m -u 1000 jarvis
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Set work directory
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY . .
+COPY --chown=jarvis:jarvis . .
 
-# Create necessary directories
-RUN mkdir -p logs models training_data storage mcp_servers
+# Switch to non-root user
+USER jarvis
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV JARVIS_PORT=8765
 
-# Create non-root user
-RUN useradd -m -u 1000 jarvis && chown -R jarvis:jarvis /app
-USER jarvis
-
-# Expose ports
-EXPOSE 8765 8000 9090
+# Expose WebSocket port
+EXPOSE 8765
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+    CMD python -c "import websockets, asyncio; asyncio.run(websockets.connect('ws://localhost:8765'))" || exit 1
 
-# Default command
+# Run JARVIS
 CMD ["python", "LAUNCH-JARVIS-REAL.py"]

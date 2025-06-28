@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Interface</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            background: #1a1a1a;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #00ff41;
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
+        }
+        
+        .status {
+            color: #ffcc00;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .chat-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background: #1a1a1a;
+            align-self: flex-end;
+            border: 1px solid #00ff41;
+        }
+        
+        .jarvis-message {
+            background: #0d1117;
+            align-self: flex-start;
+            border: 1px solid #ffcc00;
+            color: #ffcc00;
+        }
+        
+        .system-message {
+            background: #1a1a1a;
+            align-self: center;
+            border: 1px solid #666;
+            color: #999;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .input-container {
+            padding: 20px;
+            background: #1a1a1a;
+            border-top: 2px solid #00ff41;
+            display: flex;
+            gap: 10px;
+        }
+        
+        input {
+            flex: 1;
+            background: #0a0a0a;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 16px;
+        }
+        
+        button {
+            background: #00ff41;
+            color: #0a0a0a;
+            border: none;
+            padding: 10px 20px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #00cc33;
+            box-shadow: 0 0 10px #00ff41;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .connecting {
+            color: #ff6600;
+        }
+        
+        .connected {
+            color: #00ff41;
+        }
+        
+        .error {
+            color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>J.A.R.V.I.S.</h1>
+        <div class="status" id="status">Initializing...</div>
+    </div>
+    
+    <div class="chat-container" id="chat"></div>
+    
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+        <button id="sendButton" disabled>Send</button>
+    </div>
+
+    <script>
+        let ws = null;
+        let reconnectAttempts = 0;
+        let maxReconnectAttempts = 5;
+        let reconnectDelay = 1000;
+        let isConnecting = false;
+        let hasReceivedWelcome = false;
+        
+        const status = document.getElementById('status');
+        const chat = document.getElementById('chat');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        function updateStatus(text, className) {
+            status.textContent = text;
+            status.className = 'status ' + className;
+        }
+        
+        function addMessage(content, type = 'jarvis') {
+            const messageDiv = document.createElement('div');
+            if (type === 'user') {
+                messageDiv.className = 'message user-message';
+            } else if (type === 'system') {
+                messageDiv.className = 'message system-message';
+            } else {
+                messageDiv.className = 'message jarvis-message';
+            }
+            messageDiv.textContent = content;
+            chat.appendChild(messageDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+        
+        function connect() {
+            if (isConnecting || (ws && ws.readyState === WebSocket.OPEN)) {
+                return;
+            }
+            
+            isConnecting = true;
+            updateStatus(`Connecting... (Attempt ${reconnectAttempts + 1})`, 'connecting');
+            
+            try {
+                ws = new WebSocket('ws://localhost:8765');
+                
+                ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    updateStatus('Connected to JARVIS', 'connected');
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                    reconnectAttempts = 0;
+                    isConnecting = false;
+                    hasReceivedWelcome = false;
+                    
+                    // Clear chat and add connection message
+                    if (reconnectAttempts === 0) {
+                        addMessage('Connection established', 'system');
+                    }
+                };
+                
+                ws.onmessage = (event) => {
+                    console.log('Received:', event.data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        // Prevent duplicate welcome messages
+                        if (!hasReceivedWelcome || data.content.indexOf('connected successfully') === -1) {
+                            addMessage(data.content || event.data, 'jarvis');
+                            hasReceivedWelcome = true;
+                        }
+                    } catch (e) {
+                        console.error('Parse error:', e);
+                        addMessage(event.data, 'jarvis');
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    updateStatus('Connection error', 'error');
+                    isConnecting = false;
+                };
+                
+                ws.onclose = (event) => {
+                    console.log('WebSocket closed:', event.code, event.reason);
+                    ws = null;
+                    isConnecting = false;
+                    messageInput.disabled = true;
+                    sendButton.disabled = true;
+                    
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        updateStatus(`Disconnected. Reconnecting in ${reconnectDelay/1000}s...`, 'error');
+                        setTimeout(connect, reconnectDelay);
+                        reconnectDelay = Math.min(reconnectDelay * 1.5, 10000);
+                    } else {
+                        updateStatus('Connection failed. Please refresh the page.', 'error');
+                        addMessage('Unable to connect to JARVIS. Please check if the server is running.', 'system');
+                    }
+                };
+            } catch (error) {
+                console.error('Connection error:', error);
+                updateStatus('Failed to connect', 'error');
+                isConnecting = false;
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    setTimeout(connect, reconnectDelay);
+                }
+            }
+        }
+        
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            addMessage(message, 'user');
+            
+            const data = {
+                type: 'message',
+                content: message,
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                ws.send(JSON.stringify(data));
+                messageInput.value = '';
+            } catch (error) {
+                console.error('Send error:', error);
+                addMessage('Failed to send message', 'system');
+            }
+        }
+        
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        // Initial connection
+        connect();
+        
+        // Add debug info
+        console.log('JARVIS Web Interface loaded');
+        console.log('Attempting to connect to ws://localhost:8765');
+    </script>
+</body>
+</html>

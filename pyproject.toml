@@ -1,6 +1,193 @@
+[tool.poetry]
+name = "jarvis-ecosystem"
+version = "0.1.0"
+description = "JARVIS - Just A Rather Very Intelligent System"
+authors = ["JARVIS Team"]
+readme = "README.md"
+python = "^3.9"
+packages = [{include = "core"}, {include = "plugins"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+# Core AI/ML Libraries
+torch = "^2.2.0"
+transformers = "^4.30.0"
+openai = "^1.0.0"
+anthropic = "^0.3.0"
+scikit-learn = "^1.3.0"
+tensorflow = "^2.13.0"
+
+# Neural Networks & Deep Learning
+jax = "^0.4.0"
+flax = "^0.7.0"
+optax = "^0.1.0"
+einops = "^0.6.0"
+timm = "^0.9.0"
+onnxruntime = "^1.15.0"
+
+# Data Science & Analysis
+numpy = "^1.24.0"
+pandas = "^2.0.0"
+scipy = "^1.11.0"
+statsmodels = "^0.14.0"
+prophet = "^1.1.0"
+networkx = "^3.1"
+
+# Natural Language Processing
+nltk = "^3.8.0"
+spacy = "^3.5.0"
+textblob = "^0.17.0"
+
+# Computer Vision & Audio
+opencv-python = "^4.8.0"
+librosa = "^0.10.0"
+sounddevice = "^0.4.6"
+pygame = "^2.5.0"
+
+# Voice & Speech
+SpeechRecognition = "^3.10.0"
+pyttsx3 = "^2.90"
+pyaudio = "^0.2.11"
+elevenlabs = "^0.2.24"
+
+# Web & API
+fastapi = "^0.100.0"
+flask = "^2.3.0"
+flask-cors = "^4.0.0"
+websockets = "^11.0"
+aiohttp = "^3.8.0"
+requests = "^2.31.0"
+pydantic = "^2.0.0"
+
+# Database & Storage
+redis = "^4.5.0"
+aioredis = "^2.0.0"
+chromadb = "^0.4.0"
+google-cloud-storage = "^2.10.0"
+
+# Distributed Computing (Optional)
+ray = {version = "^2.0.0", optional = true}
+dask = {version = "^2023.0.0", optional = true}
+prefect = {version = "^2.0.0", optional = true}
+
+# ML Operations & Monitoring (Optional)
+wandb = {version = "^0.15.0", optional = true}
+mlflow = {version = "^2.0.0", optional = true}
+prometheus-client = "^0.17.0"
+opentelemetry-api = "^1.20.0"
+opentelemetry-sdk = "^1.20.0"
+opentelemetry-exporter-otlp = "^1.20.0"
+opentelemetry-instrumentation-requests = "^0.40b0"
+
+# DevOps & System
+docker = "^6.0.0"
+kubernetes = {version = "^25.0.0", optional = true}
+psutil = "^5.9.0"
+watchdog = "^3.0.0"
+keyring = "^23.0.0"
+
+# Development Tools
+structlog = "^23.0.0"
+validators = "^0.20.0"
+cachetools = "^5.3.0"
+memory-profiler = "^0.61.0"
+GitPython = "^3.1.0"
+PyGithub = "^1.58"
+
+# Utilities
+zeroconf = "^0.70.0"
+jinja2 = "^3.1.0"
+pyyaml = "^6.0"
+schedule = "^1.2.0"
+asyncssh = "^2.13.0"
+python-dotenv = "^1.0.0"
+
+# Visualization
+matplotlib = "^3.7.0"
+plotly = "^5.14.0"
+
+# Performance
+numba = "^0.57.0"
+zstandard = "^0.21.0"
+
+# Reinforcement Learning
+stable-baselines3 = "^2.2.1"
+
+[tool.poetry.extras]
+distributed = ["ray", "dask", "prefect"]
+mlops = ["wandb", "mlflow"]
+kubernetes = ["kubernetes"]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+pytest-asyncio = "^0.21.0"
+pytest-cov = "^4.0.0"
+coverage = "^7.0.0"
+black = "^23.0.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+pylint = "^2.17.0"
+mypy = "^1.3.0"
+autopep8 = "^2.0.0"
+radon = "^6.0.0"
+pre-commit = "^3.3.0"
+bandit = "^1.7.5"
+safety = "^2.3.0"
+
+[tool.poetry.scripts]
+jarvis = "core.launch:main"
+jarvis-setup = "scripts.setup:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --cov=core --cov-report=html"
 testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
+python_files = "test_*.py"
+python_functions = "test_*"
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["core", "plugins"]
+omit = ["*/tests/*", "*/test_*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
+[tool.pylint.messages_control]
+disable = "C0330, C0326"
+
+[tool.pylint.format]
+max-line-length = "88"

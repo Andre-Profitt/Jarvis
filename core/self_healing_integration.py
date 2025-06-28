@@ -10,15 +10,15 @@ from datetime import datetime, timedelta
 import json
 
 from .self_healing_system import (
-    SelfHealingSystem,
+    SelfHealingOrchestrator as SelfHealingSystem,
     SystemMetrics,
     Anomaly,
     AnomalyType,
     Fix
 )
 from .neural_integration import neural_jarvis
-from .monitoring import MonitoringSystem
-from .database import Database
+from .monitoring import MonitoringService as MonitoringSystem
+from .database import DatabaseManager as Database
 from .websocket_security import websocket_security
 from .updated_multi_ai_integration import multi_ai
 
@@ -29,7 +29,7 @@ class SelfHealingJARVISIntegration:
     """Integrates Self-Healing capabilities with JARVIS ecosystem"""
     
     def __init__(self):
-        self.healing_system = SelfHealingSystem()
+        self.healing_system = SelfHealingSystem(cloud_storage_path="./self_healing_data")
         self.monitoring = MonitoringSystem()
         self.db = Database()
         self._initialized = False

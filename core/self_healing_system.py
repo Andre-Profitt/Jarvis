@@ -980,14 +980,14 @@ class SelfHealingOrchestrator:
         self.fix_generator = FixGenerator()
         self.sandbox_tester = SandboxTester()
         
-        # New components
-        self.circuit_breaker = CircuitBreaker()
-        self.rate_limiter = RateLimiter()
-        self.distributed_coordinator = DistributedCoordinator(node_id=f"node_{datetime.now().timestamp()}")
-        self.cost_analyzer = CostBenefitAnalyzer()
-        self.predictive_healer = PredictiveHealer()
-        self.adaptive_learner = AdaptiveLearner()
-        self.observability = ObservabilityIntegration()
+        # New components - commented out until implemented
+        # self.circuit_breaker = CircuitBreaker()
+        # self.rate_limiter = RateLimiter()
+        # self.distributed_coordinator = DistributedCoordinator(node_id=f"node_{datetime.now().timestamp()}")
+        # self.cost_analyzer = CostBenefitAnalyzer()
+        # self.predictive_healer = PredictiveHealer()
+        # self.adaptive_learner = AdaptiveLearner()
+        # self.observability = ObservabilityIntegration()
         
         self.metrics_buffer = deque(maxlen=10000)
         self.anomaly_history = []
@@ -1001,7 +1001,8 @@ class SelfHealingOrchestrator:
         self.max_concurrent_healings = self.config.get('max_concurrent_healings', 5)
         
         self.cloud_storage = cloud_storage_path
-        self.logger = self._setup_logging()
+        # self.logger = self._setup_logging()
+        self.logger = logging.getLogger(__name__)
         
         # Multi-tenancy support
         self.tenant_contexts = {}

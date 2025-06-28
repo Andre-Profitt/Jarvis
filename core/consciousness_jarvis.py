@@ -459,8 +459,12 @@ class ConsciousnessJARVIS:
     
     async def _consciousness_cycle(self) -> Dict[str, Any]:
         """Single consciousness cycle"""
-        # Start consciousness simulation
-        await self.consciousness.start_simulation()
+        # The consciousness simulator runs in its own loop
+        # We just need to ensure it's running
+        if not hasattr(self, '_simulation_task') or self._simulation_task.done():
+            self._simulation_task = asyncio.create_task(
+                self.consciousness.simulate_consciousness_loop()
+            )
         
         # Wait for one cycle
         await asyncio.sleep(0.1)
@@ -522,8 +526,13 @@ class ConsciousnessJARVIS:
     async def stop(self):
         """Stop consciousness simulation"""
         self.running = False
-        if hasattr(self.consciousness, 'stop_simulation'):
-            await self.consciousness.stop_simulation()
+        if hasattr(self, '_simulation_task'):
+            await self.consciousness.shutdown()
+            self._simulation_task.cancel()
+            try:
+                await self._simulation_task
+            except asyncio.CancelledError:
+                pass
     
     def get_consciousness_report(self) -> Dict[str, Any]:
         """Generate comprehensive consciousness report"""

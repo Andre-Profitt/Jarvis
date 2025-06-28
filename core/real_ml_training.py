@@ -16,8 +16,19 @@ from transformers import (
     TrainingArguments,
     DataCollatorForLanguageModeling
 )
-from datasets import Dataset as HFDataset
+try:
+    from datasets import Dataset as HFDataset
+    DATASETS_AVAILABLE = True
+except ImportError:
+    DATASETS_AVAILABLE = False
+    HFDataset = None
 import json
+
+# Import GCS storage manager
+try:
+    from .gcs_storage import get_gcs_manager
+except ImportError:
+    from gcs_storage import get_gcs_manager
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import logging
@@ -316,9 +327,16 @@ async def scrape_multiple(urls):
 class JARVISTrainer:
     """Actual training system for JARVIS"""
     
-    def __init__(self, model_dir: Path):
+    def __init__(self, model_dir: Path, use_cloud_storage: bool = True):
         self.model_dir = model_dir
         self.model_dir.mkdir(parents=True, exist_ok=True)
+        self.use_cloud_storage = use_cloud_storage
+        
+        # Initialize GCS manager if cloud storage is enabled
+        self.gcs_manager = get_gcs_manager() if use_cloud_storage else None
+        if self.gcs_manager and not self.gcs_manager.is_available:
+            logger.warning("GCS not available, falling back to local storage")
+            self.use_cloud_storage = False
         
         # Initialize brain
         self.brain = JARVISBrain()
@@ -442,7 +460,7 @@ class JARVISTrainer:
         self.save_final_model()
         
     def save_checkpoint(self, epoch: int, stats: Dict[str, float]):
-        """Save model checkpoint"""
+        """Save model checkpoint to local and optionally to GCS"""
         
         checkpoint = {
             'epoch': epoch,
@@ -453,15 +471,39 @@ class JARVISTrainer:
             'history': self.history
         }
         
+        # Always save locally first
         checkpoint_path = self.model_dir / f"checkpoint_epoch_{epoch}.pt"
         torch.save(checkpoint, checkpoint_path)
-        logger.info(f"Saved checkpoint to {checkpoint_path}")
+        logger.info(f"Saved checkpoint locally to {checkpoint_path}")
+        
+        # Upload to GCS if enabled
+        if self.use_cloud_storage and self.gcs_manager:
+            try:
+                import io
+                buffer = io.BytesIO()
+                torch.save(checkpoint, buffer)
+                buffer.seek(0)
+                
+                metadata = {
+                    'epoch': str(epoch),
+                    'loss': str(stats.get('loss', 0)),
+                    'accuracy': str(stats.get('task_accuracy', 0))
+                }
+                
+                gcs_uri = self.gcs_manager.save_model(
+                    checkpoint,
+                    model_name="jarvis_brain",
+                    version=f"checkpoint_epoch_{epoch}",
+                    metadata=metadata
+                )
+                logger.info(f"Uploaded checkpoint to GCS: {gcs_uri}")
+            except Exception as e:
+                logger.error(f"Failed to upload checkpoint to GCS: {e}")
     
     def save_final_model(self):
-        """Save final trained model"""
+        """Save final trained model to local and optionally to GCS"""
         
-        model_path = self.model_dir / "jarvis_brain_final.pt"
-        torch.save({
+        final_model = {
             'model_state_dict': self.brain.state_dict(),
             'model_config': {
                 'input_dim': 768,
@@ -470,22 +512,75 @@ class JARVISTrainer:
             },
             'history': self.history,
             'training_completed': datetime.now().isoformat()
-        }, model_path)
+        }
         
-        logger.info(f"Saved final model to {model_path}")
+        # Save locally
+        model_path = self.model_dir / "jarvis_brain_final.pt"
+        torch.save(final_model, model_path)
+        logger.info(f"Saved final model locally to {model_path}")
         
-        # Save training history
+        # Save training history locally
         history_path = self.model_dir / "training_history.json"
         with open(history_path, 'w') as f:
             json.dump(self.history, f, indent=2)
+        
+        # Upload to GCS if enabled
+        if self.use_cloud_storage and self.gcs_manager:
+            try:
+                # Upload model
+                metadata = {
+                    'training_completed': datetime.now().isoformat(),
+                    'final_loss': str(self.history['loss'][-1] if self.history['loss'] else 0),
+                    'final_accuracy': str(self.history['task_accuracy'][-1] if self.history['task_accuracy'] else 0),
+                    'total_epochs': str(len(self.history['loss']))
+                }
+                
+                gcs_uri = self.gcs_manager.save_model(
+                    final_model,
+                    model_name="jarvis_brain",
+                    version="final",
+                    metadata=metadata
+                )
+                logger.info(f"Uploaded final model to GCS: {gcs_uri}")
+                
+                # Upload training history
+                history_gcs_path = f"models/jarvis_brain/training_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                self.gcs_manager.upload(
+                    json.dumps(self.history, indent=2).encode(),
+                    history_gcs_path,
+                    content_type="application/json"
+                )
+                logger.info(f"Uploaded training history to GCS: gs://{self.gcs_manager.bucket_name}/{history_gcs_path}")
+                
+            except Exception as e:
+                logger.error(f"Failed to upload final model to GCS: {e}")
     
-    def load_model(self, checkpoint_path: Optional[Path] = None):
-        """Load saved model"""
+    def load_model(self, checkpoint_path: Optional[Path] = None, version: Optional[str] = None):
+        """Load saved model from local storage or GCS"""
         
-        if checkpoint_path is None:
-            checkpoint_path = self.model_dir / "jarvis_brain_final.pt"
+        checkpoint = None
         
-        checkpoint = torch.load(checkpoint_path)
+        # Try to load from GCS first if enabled and no local path specified
+        if self.use_cloud_storage and self.gcs_manager and checkpoint_path is None:
+            try:
+                logger.info(f"Attempting to load model from GCS (version: {version or 'latest'})")
+                checkpoint = self.gcs_manager.load_model("jarvis_brain", version=version)
+                logger.info("Successfully loaded model from GCS")
+            except Exception as e:
+                logger.warning(f"Failed to load from GCS: {e}. Falling back to local storage.")
+        
+        # Load from local storage if GCS failed or local path specified
+        if checkpoint is None:
+            if checkpoint_path is None:
+                checkpoint_path = self.model_dir / "jarvis_brain_final.pt"
+            
+            if not checkpoint_path.exists():
+                raise FileNotFoundError(f"Model not found at {checkpoint_path}")
+            
+            checkpoint = torch.load(checkpoint_path)
+            logger.info(f"Loaded model from local storage: {checkpoint_path}")
+        
+        # Load model state
         self.brain.load_state_dict(checkpoint['model_state_dict'])
         logger.info(f"Loaded model from {checkpoint_path}")
 

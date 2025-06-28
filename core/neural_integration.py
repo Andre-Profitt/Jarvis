@@ -9,17 +9,17 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from .neural_resource_manager import (
-    NeuralResourceManager, 
+    NeuralResourceManagerV2 as NeuralResourceManager, 
     NeuronType,
     NetworkTopology,
     NeuralResource,
-    ResourceAllocationGraph
+    OptimizedResourceAllocationGraph as ResourceAllocationGraph
 )
 from .world_class_swarm import WorldClassSwarmSystem
-from .world_class_ml import WorldClassMLSystem
+from .world_class_ml import WorldClassTrainer as WorldClassMLSystem
 from .updated_multi_ai_integration import multi_ai
-from .monitoring import MonitoringSystem
-from .database import Database
+from .monitoring import MonitoringService as MonitoringSystem
+from .database import DatabaseManager as Database
 
 logger = logging.getLogger(__name__)
 

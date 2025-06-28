@@ -748,9 +748,7 @@ class RobustFederatedClient:
         return update
 
 
-class EnhancedPrivateLearningSy
-
-stem:
+class EnhancedPrivateLearningSystem:
     """
     Enhanced privacy-preserving federated learning system with improvements
     """
@@ -999,9 +997,7 @@ async def demo_enhanced_system():
     )
     
     # Create enhanced system
-    system = EnhancedPrivateLearningSy
-
-stem(
+    system = EnhancedPrivateLearningSystem(
         model_fn=lambda: SimpleModel(),
         privacy_config=privacy_config
     )

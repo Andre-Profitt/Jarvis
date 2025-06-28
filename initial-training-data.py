@@ -68,7 +68,7 @@ class InitialTrainingDataGenerator:
                         "Should check recent files"
                     ],
                     "actions": [
-                        {"type": "search_files", "params": {"pattern": "*.ppt*", "*.key"}},
+                        {"type": "search_files", "params": {"pattern": ["*.ppt*", "*.key"]}},
                         {"type": "check_recent", "params": {"file_type": "presentation"}},
                         {"type": "search_cloud", "params": {"service": "iCloud", "type": "presentation"}}
                     ],

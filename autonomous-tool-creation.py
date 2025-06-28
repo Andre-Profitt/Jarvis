@@ -385,7 +385,7 @@ class MCPServer:
             result = await getattr(self.tool, method)(**params)
             return {{"result": result}}
         else:
-            return {{"error": f"Method {{method}} not found"}}
+            return {{"error": f"Method {method} not found"}}
     
     async def run(self):
         while True:

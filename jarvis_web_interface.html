@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Interface</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            background: #1a1a1a;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #00ff41;
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
+        }
+        
+        .status {
+            color: #ffcc00;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .chat-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background: #1a1a1a;
+            align-self: flex-end;
+            border: 1px solid #00ff41;
+        }
+        
+        .jarvis-message {
+            background: #0d1117;
+            align-self: flex-start;
+            border: 1px solid #ffcc00;
+            color: #ffcc00;
+        }
+        
+        .input-container {
+            padding: 20px;
+            background: #1a1a1a;
+            border-top: 2px solid #00ff41;
+            display: flex;
+            gap: 10px;
+        }
+        
+        input {
+            flex: 1;
+            background: #0a0a0a;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 16px;
+        }
+        
+        button {
+            background: #00ff41;
+            color: #0a0a0a;
+            border: none;
+            padding: 10px 20px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #00cc33;
+            box-shadow: 0 0 10px #00ff41;
+        }
+        
+        .connecting {
+            color: #ff6600;
+        }
+        
+        .connected {
+            color: #00ff41;
+        }
+        
+        .error {
+            color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>J.A.R.V.I.S.</h1>
+        <div class="status" id="status">Connecting...</div>
+    </div>
+    
+    <div class="chat-container" id="chat"></div>
+    
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+        <button id="sendButton" disabled>Send</button>
+    </div>
+
+    <script>
+        let ws = null;
+        const status = document.getElementById('status');
+        const chat = document.getElementById('chat');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        function updateStatus(text, className) {
+            status.textContent = text;
+            status.className = 'status ' + className;
+        }
+        
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'jarvis-message'}`;
+            messageDiv.textContent = content;
+            chat.appendChild(messageDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+        
+        function connect() {
+            updateStatus('Connecting to JARVIS...', 'connecting');
+            
+            try {
+                ws = new WebSocket('ws://localhost:8765');
+                
+                ws.onopen = () => {
+                    updateStatus('Connected to JARVIS', 'connected');
+                    messageInput.disabled = false;
+                    sendButton.disabled = false;
+                    addMessage('JARVIS is online. How can I assist you?', false);
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.content) {
+                            addMessage(data.content, false);
+                        }
+                    } catch (e) {
+                        addMessage(event.data, false);
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    updateStatus('Connection error', 'error');
+                    console.error('WebSocket error:', error);
+                };
+                
+                ws.onclose = () => {
+                    updateStatus('Disconnected. Reconnecting...', 'error');
+                    messageInput.disabled = true;
+                    sendButton.disabled = true;
+                    setTimeout(connect, 3000);
+                };
+            } catch (error) {
+                updateStatus('Failed to connect', 'error');
+                setTimeout(connect, 3000);
+            }
+        }
+        
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            addMessage(message, true);
+            
+            const data = {
+                type: 'message',
+                content: message,
+                timestamp: new Date().toISOString()
+            };
+            
+            ws.send(JSON.stringify(data));
+            messageInput.value = '';
+        }
+        
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        // Initial connection
+        connect();
+    </script>
+</body>
+</html>

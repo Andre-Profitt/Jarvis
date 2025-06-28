@@ -7,18 +7,7 @@ Ultra-realistic voice synthesis with full features
 import os
 import asyncio
 from typing import Dict, Any, List, Optional, Union
-from elevenlabs import (
-    Voice, 
-    VoiceSettings, 
-    generate, 
-    play, 
-    set_api_key,
-    voices,
-    Models,
-    History,
-    User
-)
-from elevenlabs.client import ElevenLabs
+from elevenlabs import ElevenLabs, Voice, VoiceSettings, play, save
 import pygame
 import io
 import logging
@@ -39,8 +28,7 @@ class RealElevenLabsIntegration:
         if not self.api_key:
             raise ValueError("ElevenLabs API key not found in environment variables")
         
-        # Initialize client
-        set_api_key(self.api_key)
+        # Initialize client with new API
         self.client = ElevenLabs(api_key=self.api_key)
         
         # Initialize pygame for audio playback
@@ -150,18 +138,16 @@ class RealElevenLabsIntegration:
                                 settings: Dict[str, Any]) -> bytes:
         """Generate audio using standard method"""
         
-        audio = generate(
+        # Use the new client API
+        audio = self.client.text_to_speech.convert(
             text=text,
-            voice=Voice(
-                voice_id=voice_config["voice_id"],
-                settings=VoiceSettings(**settings)
-            ),
-            model="eleven_multilingual_v2"  # Best quality model
+            voice_id=voice_config["voice_id"],
+            model_id="eleven_multilingual_v2",  # Best quality model
+            voice_settings=VoiceSettings(**settings)
         )
         
-        # Convert generator to bytes
-        audio_data = b"".join(audio)
-        return audio_data
+        # The new API returns bytes directly
+        return audio
     
     async def _generate_streaming(self, 
                                  text: str, 
@@ -169,18 +155,15 @@ class RealElevenLabsIntegration:
                                  settings: Dict[str, Any]) -> bytes:
         """Generate audio using streaming for lower latency"""
         
-        # For real-time applications
-        audio_stream = generate(
+        # For real-time applications using the new API
+        audio_stream = self.client.text_to_speech.convert_as_stream(
             text=text,
-            voice=Voice(
-                voice_id=voice_config["voice_id"],
-                settings=VoiceSettings(**settings)
-            ),
-            model="eleven_turbo_v2",  # Optimized for low latency
-            stream=True
+            voice_id=voice_config["voice_id"],
+            model_id="eleven_turbo_v2",  # Optimized for low latency
+            voice_settings=VoiceSettings(**settings)
         )
         
-        # Stream and play chunks as they arrive
+        # Stream and collect chunks
         audio_chunks = []
         for chunk in audio_stream:
             audio_chunks.append(chunk)
@@ -275,7 +258,7 @@ class RealElevenLabsIntegration:
         """Get all available voices"""
         
         try:
-            all_voices = voices()
+            all_voices = self.client.voices.get_all()
             
             return [
                 {
@@ -324,7 +307,7 @@ class RealElevenLabsIntegration:
         
         try:
             # Try to fetch user info
-            user = User.from_api()
+            user = self.client.user.get()
             logger.info(f"ElevenLabs connected. Subscription: {user.subscription}")
             return True
         except Exception as e:
@@ -335,7 +318,7 @@ class RealElevenLabsIntegration:
         """Get API usage statistics"""
         
         try:
-            user = User.from_api()
+            user = self.client.user.get()
             return {
                 "character_count": user.subscription.character_count,
                 "character_limit": user.subscription.character_limit,

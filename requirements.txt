@@ -24,6 +24,7 @@ redis>=4.5.0
 aioredis>=2.0.0
 chromadb>=0.4.0
 #faiss-cpu>=1.7.4
+google-cloud-storage>=2.10.0
 
 # Web & Networking
 websockets>=11.0

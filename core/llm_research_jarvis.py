@@ -16,17 +16,17 @@ from .llm_research_integration import (
     LLMProvider,
     ClaudeCLI,
     GeminiCLI,
-    DualLLM,
-    ArxivPlugin,
-    SemanticScholarPlugin,
-    CrossRefPlugin,
-    APIConfig
+    DualLLMValidator as DualLLM,
+    # ArxivPlugin,  # Not implemented yet
+    # SemanticScholarPlugin,  # Not implemented yet
+    # CrossRefPlugin,  # Not implemented yet
+    # APIConfig  # Not implemented yet
 )
 from .world_class_swarm import WorldClassSwarmSystem
 from .neural_integration import neural_jarvis
 from .self_healing_integration import self_healing_jarvis
-from .database import Database
-from .monitoring import MonitoringSystem
+from .database import DatabaseManager as Database
+from .monitoring import MonitoringService as MonitoringSystem
 
 logger = logging.getLogger(__name__)
 

@@ -22,6 +22,12 @@ from concurrent.futures import ThreadPoolExecutor
 import weakref
 import os
 
+# Import GCS storage manager
+try:
+    from .gcs_storage import get_gcs_manager
+except ImportError:
+    from gcs_storage import get_gcs_manager
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -326,11 +332,18 @@ class InMemoryStorage:
 
 
 class PersistentStorage(InMemoryStorage):
-    """File-based persistent storage"""
-    def __init__(self, storage_path: str = "./memory_storage"):
+    """File-based persistent storage with optional GCS backup"""
+    def __init__(self, storage_path: str = "./memory_storage", use_cloud_storage: bool = True):
         super().__init__()
         self.storage_path = storage_path
         os.makedirs(storage_path, exist_ok=True)
+        self.use_cloud_storage = use_cloud_storage
+        
+        # Initialize GCS manager if cloud storage is enabled
+        self.gcs_manager = get_gcs_manager() if use_cloud_storage else None
+        if self.gcs_manager and not self.gcs_manager.is_available:
+            logger.warning("GCS not available, using local storage only")
+            self.use_cloud_storage = False
     
     async def save_memory(self, memory: EpisodicMemory) -> bool:
         # Save to memory first
@@ -341,6 +354,23 @@ class PersistentStorage(InMemoryStorage):
         try:
             with open(file_path, 'wb') as f:
                 pickle.dump(memory, f)
+            
+            # Upload to GCS if enabled
+            if self.use_cloud_storage and self.gcs_manager:
+                try:
+                    # Determine agent_id from memory context
+                    agent_id = memory.context.get('agent_id', 'default')
+                    memory_type = memory.memory_type.value.lower()
+                    
+                    gcs_uri = self.gcs_manager.save_memory(
+                        memory,
+                        memory_type=memory_type,
+                        agent_id=agent_id
+                    )
+                    logger.debug(f"Uploaded memory to GCS: {gcs_uri}")
+                except Exception as e:
+                    logger.error(f"Failed to upload memory to GCS: {e}")
+            
             return True
         except Exception as e:
             logger.error(f"Failed to persist memory {memory.memory_id}: {e}")
@@ -352,16 +382,37 @@ class PersistentStorage(InMemoryStorage):
         if memory:
             return memory
         
-        # Load from disk
+        # Try to load from disk
         file_path = f"{self.storage_path}/{memory_id}.pkl"
-        try:
-            with open(file_path, 'rb') as f:
-                memory = pickle.load(f)
-                self.storage[memory_id] = memory  # Cache in memory
-                return memory
-        except Exception as e:
-            logger.error(f"Failed to load memory {memory_id}: {e}")
-            return None
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'rb') as f:
+                    memory = pickle.load(f)
+                    self.storage[memory_id] = memory  # Cache in memory
+                    return memory
+            except Exception as e:
+                logger.error(f"Failed to load memory from disk {memory_id}: {e}")
+        
+        # Try to load from GCS if local not found
+        if self.use_cloud_storage and self.gcs_manager:
+            try:
+                # Search for memory in GCS
+                memories = self.gcs_manager.list(prefix=f"memories/")
+                for mem_path in memories:
+                    if memory_id in mem_path:
+                        memory_bytes = await self.gcs_manager.download_async(mem_path)
+                        memory = pickle.loads(memory_bytes)
+                        
+                        # Save to local cache
+                        self.storage[memory_id] = memory
+                        with open(file_path, 'wb') as f:
+                            pickle.dump(memory, f)
+                        
+                        return memory
+            except Exception as e:
+                logger.error(f"Failed to load memory from GCS {memory_id}: {e}")
+        
+        return None
 
 
 class WorkingMemory:

@@ -26,21 +26,53 @@ from peft import (
     prepare_model_for_kbit_training,
     TaskType
 )
-import bitsandbytes as bnb
+try:
+    import bitsandbytes as bnb
+    BNB_AVAILABLE = True
+except ImportError:
+    bnb = None
+    BNB_AVAILABLE = False
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional, Tuple, Union
 import logging
 from pathlib import Path
 import math
-import wandb
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except ImportError:
+    wandb = None
+    WANDB_AVAILABLE = False
 from accelerate import Accelerator
-from datasets import Dataset as HFDataset
+try:
+    from datasets import Dataset as HFDataset
+    DATASETS_AVAILABLE = True
+except ImportError:
+    HFDataset = None
+    DATASETS_AVAILABLE = False
 import json
 from tqdm import tqdm
-import einops
-from einops import rearrange, repeat
-from flash_attn import flash_attn_func
-import triton
+try:
+    import einops
+    from einops import rearrange, repeat
+    EINOPS_AVAILABLE = True
+except ImportError:
+    einops = None
+    rearrange = None
+    repeat = None
+    EINOPS_AVAILABLE = False
+try:
+    from flash_attn import flash_attn_func
+    FLASH_ATTN_AVAILABLE = True
+except ImportError:
+    flash_attn_func = None
+    FLASH_ATTN_AVAILABLE = False
+try:
+    import triton
+    TRITON_AVAILABLE = True
+except ImportError:
+    triton = None
+    TRITON_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -118,23 +150,44 @@ class MultiQueryAttention(nn.Module):
         
         # Repeat K, V for multi-query attention
         if self.num_kv_heads < self.num_heads:
-            k = repeat(k, 'b s h d -> b s (h r) d', r=self.num_heads // self.num_kv_heads)
-            v = repeat(v, 'b s h d -> b s (h r) d', r=self.num_heads // self.num_kv_heads)
+            if EINOPS_AVAILABLE and repeat is not None:
+                k = repeat(k, 'b s h d -> b s (h r) d', r=self.num_heads // self.num_kv_heads)
+                v = repeat(v, 'b s h d -> b s (h r) d', r=self.num_heads // self.num_kv_heads)
+            else:
+                # Manual repeat
+                r = self.num_heads // self.num_kv_heads
+                k = k.repeat_interleave(r, dim=2)
+                v = v.repeat_interleave(r, dim=2)
         
         # Use Flash Attention if available
-        if self.use_flash_attn and flash_attn_func is not None:
+        if self.use_flash_attn and FLASH_ATTN_AVAILABLE and flash_attn_func is not None:
             # Rearrange for flash attention
-            q = rearrange(q, 'b s h d -> b h s d')
-            k = rearrange(k, 'b s h d -> b h s d')
-            v = rearrange(v, 'b s h d -> b h s d')
+            if EINOPS_AVAILABLE and rearrange is not None:
+                q = rearrange(q, 'b s h d -> b h s d')
+                k = rearrange(k, 'b s h d -> b h s d')
+                v = rearrange(v, 'b s h d -> b h s d')
+            else:
+                q = q.transpose(1, 2)
+                k = k.transpose(1, 2)
+                v = v.transpose(1, 2)
             
             attn_output = flash_attn_func(q, k, v, dropout_p=self.dropout.p if self.training else 0.0)
-            attn_output = rearrange(attn_output, 'b h s d -> b s (h d)')
+            
+            if EINOPS_AVAILABLE and rearrange is not None:
+                attn_output = rearrange(attn_output, 'b h s d -> b s (h d)')
+            else:
+                batch_size, num_heads, seq_len, head_dim = attn_output.shape
+                attn_output = attn_output.transpose(1, 2).reshape(batch_size, seq_len, num_heads * head_dim)
         else:
             # Standard attention
-            q = rearrange(q, 'b s h d -> b h s d')
-            k = rearrange(k, 'b s h d -> b h s d')
-            v = rearrange(v, 'b s h d -> b h s d')
+            if EINOPS_AVAILABLE and rearrange is not None:
+                q = rearrange(q, 'b s h d -> b h s d')
+                k = rearrange(k, 'b s h d -> b h s d')
+                v = rearrange(v, 'b s h d -> b h s d')
+            else:
+                q = q.transpose(1, 2)
+                k = k.transpose(1, 2)
+                v = v.transpose(1, 2)
             
             attn_weights = torch.matmul(q, k.transpose(-2, -1)) * self.scale
             
@@ -145,7 +198,11 @@ class MultiQueryAttention(nn.Module):
             attn_weights = self.dropout(attn_weights)
             
             attn_output = torch.matmul(attn_weights, v)
-            attn_output = rearrange(attn_output, 'b h s d -> b s (h d)')
+            if EINOPS_AVAILABLE and rearrange is not None:
+                attn_output = rearrange(attn_output, 'b h s d -> b s (h d)')
+            else:
+                batch_size, num_heads, seq_len, head_dim = attn_output.shape
+                attn_output = attn_output.transpose(1, 2).reshape(batch_size, seq_len, num_heads * head_dim)
         
         output = self.out_proj(attn_output)
         
@@ -485,13 +542,22 @@ class WorldClassTrainer:
             },
         ]
         
-        # Use 8-bit AdamW for memory efficiency
-        self.optimizer = bnb.optim.AdamW8bit(
-            optimizer_grouped_parameters,
-            lr=1e-4,
-            betas=(0.9, 0.95),
-            eps=1e-8
-        )
+        # Use 8-bit AdamW for memory efficiency if available
+        if BNB_AVAILABLE and bnb is not None:
+            self.optimizer = bnb.optim.AdamW8bit(
+                optimizer_grouped_parameters,
+                lr=1e-4,
+                betas=(0.9, 0.95),
+                eps=1e-8
+            )
+        else:
+            # Fallback to standard AdamW
+            self.optimizer = torch.optim.AdamW(
+                optimizer_grouped_parameters,
+                lr=1e-4,
+                betas=(0.9, 0.95),
+                eps=1e-8
+            )
     
     def train(self,
              train_dataset: Dataset,

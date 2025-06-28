@@ -9,7 +9,7 @@ for various JARVIS tasks.
 
 import asyncio
 import numpy as np
-from typing import Dict, Any, List, Optional, Callable, Union
+from typing import Dict, Any, List, Optional, Callable, Union, Tuple
 import logging
 from datetime import datetime
 import json
@@ -19,9 +19,9 @@ from .quantum_swarm_optimization import (
     QuantumAgentType, EntanglementTopology,
     QuantumUtilities
 )
-from .neural_resource_manager import NeuralResourceManager
-from .self_healing_system import SelfHealingSystem
-from .llm_research_integration import LLMResearchCore
+from .neural_resource_manager import NeuralResourceManagerV2 as NeuralResourceManager
+from .self_healing_system import SelfHealingOrchestrator as SelfHealingSystem
+from .llm_research_integration import LLMEnhancedResearcher as LLMResearchCore
 
 logger = logging.getLogger(__name__)
 

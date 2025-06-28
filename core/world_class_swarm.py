@@ -5,7 +5,20 @@ Implements state-of-the-art swarm intelligence and coordination
 """
 
 import asyncio
-import ray
+import logging
+
+# Setup logging
+logger = logging.getLogger(__name__)
+
+# Try to import Ray for distributed computing
+try:
+    import ray
+    RAY_AVAILABLE = True
+    logger.info("Ray is available for distributed computing")
+except ImportError:
+    ray = None
+    RAY_AVAILABLE = False
+    logger.info("Ray not available - using local execution only")
 from typing import Dict, List, Any, Optional, Set, Tuple, Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
@@ -23,8 +36,7 @@ import torch.nn as nn
 from concurrent.futures import ThreadPoolExecutor
 import aioredis
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Logging is already configured at the top of the file
 
 # Advanced Communication Protocols
 class ACLMessage:
@@ -203,7 +215,6 @@ class ParticleSwarmOptimization(SwarmBehavior):
         return new_velocity
 
 
-@ray.remote
 class SwarmAgent:
     """Advanced autonomous agent with swarm intelligence"""
     
@@ -677,7 +688,14 @@ class WorldClassSwarmSystem:
         """Create a new swarm agent"""
         
         agent_id = f"{agent_type}_{len(self.agents)}"
-        agent = SwarmAgent.remote(agent_id, agent_type, capabilities)
+        
+        # Create agent with or without ray
+        if RAY_AVAILABLE and ray is not None:
+            # Create a Ray remote actor
+            RemoteSwarmAgent = ray.remote(SwarmAgent)
+            agent = RemoteSwarmAgent.remote(agent_id, agent_type, capabilities)
+        else:
+            agent = SwarmAgent(agent_id, agent_type, capabilities)
         
         self.agents[agent_id] = agent
         self.swarm_graph.add_node(agent_id)
@@ -730,7 +748,10 @@ class WorldClassSwarmSystem:
         while current_price > 0:
             # Check if any agent accepts current price
             for agent_id, agent in self.agents.items():
-                agent_caps = await agent.capabilities.remote()
+                if RAY_AVAILABLE:
+                    agent_caps = await agent.capabilities.remote()
+                else:
+                    agent_caps = agent.capabilities
                 
                 if task.required_capabilities.issubset(agent_caps):
                     # Agent evaluates if price is acceptable
@@ -757,11 +778,18 @@ class WorldClassSwarmSystem:
             ]
             
             # Execute behavior
-            task = agent.execute_swarm_behavior.remote(behavior, neighbors)
-            tasks.append(task)
+            if RAY_AVAILABLE:
+                task = agent.execute_swarm_behavior.remote(behavior, neighbors)
+                tasks.append(task)
+            else:
+                result = await agent.execute_swarm_behavior(behavior, neighbors)
+                tasks.append(result)
         
         # Wait for all agents
-        results = await asyncio.gather(*[ray.get(t) for t in tasks])
+        if RAY_AVAILABLE and ray is not None:
+            results = await asyncio.gather(*[ray.get(t) for t in tasks])
+        else:
+            results = tasks
         
         logger.info(f"Executed {behavior} behavior across {len(self.agents)} agents")
         
@@ -804,7 +832,10 @@ class WorldClassSwarmSystem:
                     content={'topic': topic, 'message': message}
                 )
                 
-                await agent.receive_message.remote(inform_msg)
+                if RAY_AVAILABLE:
+                    await agent.receive_message.remote(inform_msg)
+                else:
+                    await agent.receive_message(inform_msg)
     
     async def subscribe(self, agent_id: str, topic: str):
         """Subscribe agent to topic"""
@@ -832,8 +863,9 @@ class WorldClassSwarmSystem:
 async def test_world_class_swarm():
     """Test the world-class swarm system"""
     
-    # Initialize Ray
-    ray.init(ignore_reinit_error=True)
+    # Initialize Ray if available
+    if RAY_AVAILABLE and ray is not None:
+        ray.init(ignore_reinit_error=True)
     
     # Create swarm system
     swarm = WorldClassSwarmSystem()
@@ -880,7 +912,8 @@ async def test_world_class_swarm():
     metrics = swarm.get_swarm_metrics()
     logger.info(f"Swarm metrics: {metrics}")
     
-    ray.shutdown()
+    if RAY_AVAILABLE and ray is not None:
+        ray.shutdown()
 
 
 if __name__ == "__main__":
