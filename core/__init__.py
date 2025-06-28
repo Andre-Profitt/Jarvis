@@ -29,6 +29,9 @@ from .quantum_swarm_optimization import *
 from .quantum_swarm_jarvis import *
 from .metacognitive_introspector import *
 from .metacognitive_jarvis import *
+from .consciousness_simulation import *
+from .consciousness_extensions import *
+from .consciousness_jarvis import *
 
 __all__ = [
     'database',
@@ -57,5 +60,8 @@ __all__ = [
     'quantum_swarm_optimization',
     'quantum_swarm_jarvis',
     'metacognitive_introspector',
-    'metacognitive_jarvis'
+    'metacognitive_jarvis',
+    'consciousness_simulation',
+    'consciousness_extensions',
+    'consciousness_jarvis'
 ]

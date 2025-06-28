@@ -22,6 +22,7 @@ from core.neural_integration import NeuralJARVISIntegration
 from core.self_healing_integration import SelfHealingJARVISIntegration
 from core.llm_research_jarvis import LLMResearchJARVIS
 from core.quantum_swarm_jarvis import QuantumJARVISIntegration
+from core.consciousness_jarvis import ConsciousnessJARVIS
 
 # Setup logging
 logging.basicConfig(
@@ -41,6 +42,7 @@ class RealJARVISLauncher:
         self.self_healing = None
         self.llm_research = None
         self.quantum_swarm = None
+        self.consciousness = None
         
     async def launch(self):
         """Launch all JARVIS services"""
@@ -65,15 +67,19 @@ class RealJARVISLauncher:
         await self.initialize_voice()
         
         # Step 4: Initialize metacognitive system
-        print("\n[4/6] Initializing metacognitive introspection...")
+        print("\n[4/7] Initializing metacognitive introspection...")
         await self.initialize_metacognitive()
         
-        # Step 5: Start background services
-        print("\n[5/6] Starting background services...")
+        # Step 5: Initialize consciousness system
+        print("\n[5/7] Initializing enhanced consciousness simulation...")
+        await self.initialize_consciousness()
+        
+        # Step 6: Start background services
+        print("\n[6/7] Starting background services...")
         await self.start_background_services()
         
-        # Step 6: Final initialization
-        print("\n[6/6] Final initialization...")
+        # Step 7: Final initialization
+        print("\n[7/7] Final initialization...")
         await self.final_initialization()
         
         print("""
@@ -150,6 +156,38 @@ class RealJARVISLauncher:
             
         except Exception as e:
             logger.error(f"Metacognitive initialization error: {e}")
+    
+    async def initialize_consciousness(self):
+        """Initialize enhanced consciousness simulation"""
+        
+        try:
+            # Initialize consciousness with existing subsystems
+            self.consciousness = ConsciousnessJARVIS(
+                neural_manager=self.neural_manager,
+                self_healing=self.self_healing,
+                llm_research=self.llm_research,
+                quantum_swarm=self.quantum_swarm,
+                config={
+                    'cycle_frequency': 10,  # 10Hz consciousness cycle
+                    'enable_quantum': True,
+                    'enable_self_healing': True,
+                    'log_interval': 20  # Log every 20 experiences
+                }
+            )
+            
+            await self.consciousness.initialize()
+            
+            # Start consciousness in background
+            asyncio.create_task(self.consciousness.run_consciousness())
+            
+            # Get initial report
+            report = self.consciousness.get_consciousness_report()
+            logger.info(f"Consciousness system online - Modules: {list(report.get('module_activity', {}).keys())}")
+            
+            self.services["consciousness"] = self.consciousness
+            
+        except Exception as e:
+            logger.error(f"Consciousness initialization error: {e}")
         
     async def initialize_voice(self):
         """Initialize voice system with ElevenLabs"""
