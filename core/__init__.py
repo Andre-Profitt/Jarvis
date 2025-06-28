@@ -27,6 +27,8 @@ from .security_sandbox import *
 from .resource_manager import *
 from .quantum_swarm_optimization import *
 from .quantum_swarm_jarvis import *
+from .metacognitive_introspector import *
+from .metacognitive_jarvis import *
 
 __all__ = [
     'database',
@@ -53,5 +55,7 @@ __all__ = [
     'security_sandbox',
     'resource_manager',
     'quantum_swarm_optimization',
-    'quantum_swarm_jarvis'
+    'quantum_swarm_jarvis',
+    'metacognitive_introspector',
+    'metacognitive_jarvis'
 ]

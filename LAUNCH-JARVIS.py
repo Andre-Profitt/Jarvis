@@ -83,6 +83,10 @@ class JARVISLauncher:
         print("\n[✓] Activating Multi-Modal Fusion Intelligence...")
         await self._initialize_fusion_intelligence()
         
+        # Step 6.5: Initialize Advanced Self-Optimizer
+        print("\n[✓] Initializing Advanced Self-Optimizer...")
+        await self._initialize_self_optimizer()
+        
         # Step 7: Activate all capabilities
         print("\n[✓] Activating all capabilities...")
         await self._activate_capabilities()
@@ -262,6 +266,17 @@ class JARVISLauncher:
         except Exception as e:
             print(f"  ⚠️  Fusion Intelligence initialization: {e}")
     
+    async def _initialize_self_optimizer(self):
+        """Initialize the Advanced Self-Optimizer"""
+        print("  🧠 Activating self-optimization engine...")
+        try:
+            from core.advanced_self_optimizer import AdvancedSelfOptimizer
+            self.self_optimizer = AdvancedSelfOptimizer()
+            asyncio.create_task(self.self_optimizer.start_optimization_loop())
+            print("  ✅ Advanced Self-Optimizer online!")
+        except Exception as e:
+            print(f"  ⚠️  Self-Optimizer initialization: {e}")
+
     async def _activate_capabilities(self):
         """Activate all JARVIS capabilities"""
         
@@ -276,7 +291,8 @@ class JARVISLauncher:
             "💻 Coding Excellence",
             "👁️ Multi-Modal Perception",
             "🔮 Causal Reasoning",
-            "⚡ Real-time Adaptation"
+            "⚡ Real-time Adaptation",
+            "⚡ Self-Optimization"
         ]
         
         for cap in capabilities:

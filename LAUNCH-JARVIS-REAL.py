@@ -17,11 +17,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 from core.updated_multi_ai_integration import multi_ai
 from core.websocket_security import websocket_security, SecureWebSocketHandler
 from core.real_elevenlabs_integration import elevenlabs_integration
-from core.neural_integration import initialize_neural_jarvis, neural_jarvis
-from core.self_healing_integration import initialize_self_healing, self_healing_jarvis
-from core.self_healing_dashboard import run_dashboard_server
-from core.llm_research_jarvis import initialize_llm_research, llm_research_jarvis
-from core.quantum_swarm_jarvis import initialize_quantum_jarvis, quantum_jarvis
+from core.metacognitive_jarvis import MetaCognitiveJARVIS
+from core.neural_integration import NeuralJARVISIntegration
+from core.self_healing_integration import SelfHealingJARVISIntegration
+from core.llm_research_jarvis import LLMResearchJARVIS
+from core.quantum_swarm_jarvis import QuantumJARVISIntegration
 
 # Setup logging
 logging.basicConfig(
@@ -36,6 +36,11 @@ class RealJARVISLauncher:
     def __init__(self):
         self.services = {}
         self.launch_time = datetime.now()
+        self.metacognitive = None
+        self.neural_manager = None
+        self.self_healing = None
+        self.llm_research = None
+        self.quantum_swarm = None
         
     async def launch(self):
         """Launch all JARVIS services"""
@@ -47,55 +52,29 @@ class RealJARVISLauncher:
         ╚══════════════════════════════════════════╝
         """)
         
-        # Step 1: Initialize Neural Resource Manager
-        print("\n[1/10] Initializing Neural Resource Manager...")
-        await initialize_neural_jarvis()
-        
-        # Step 2: Initialize Self-Healing System
-        print("\n[2/10] Initializing Self-Healing System...")
-        await initialize_self_healing()
-        
-        # Step 3: Initialize LLM Research System
-        print("\n[3/10] Initializing LLM Research System...")
-        await initialize_llm_research()
-        
-        # Step 4: Initialize Quantum Swarm Optimization
-        print("\n[4/10] Initializing Quantum Swarm Optimization...")
-        await initialize_quantum_jarvis(
-            neural_manager=neural_jarvis,
-            self_healing=self_healing_jarvis,
-            llm_research=llm_research_jarvis
-        )
-        
-        # Step 5: Initialize AI integrations
-        print("\n[5/10] Initializing AI integrations...")
+        # Step 1: Initialize AI integrations
+        print("\n[1/5] Initializing AI integrations...")
         await multi_ai.initialize()
         
-        # Step 6: Start WebSocket server with security
-        print("\n[6/10] Starting secure WebSocket server...")
+        # Step 2: Start WebSocket server with security
+        print("\n[2/5] Starting secure WebSocket server...")
         await self.start_websocket_server()
         
-        # Step 7: Initialize voice system
-        print("\n[7/10] Initializing voice system...")
+        # Step 3: Initialize voice system
+        print("\n[3/5] Initializing voice system...")
         await self.initialize_voice()
         
-        # Step 8: Start Self-Healing Dashboard
-        print("\n[8/10] Starting Self-Healing Dashboard...")
-        asyncio.create_task(run_dashboard_server(host='localhost', port=5555))
+        # Step 4: Initialize metacognitive system
+        print("\n[4/6] Initializing metacognitive introspection...")
+        await self.initialize_metacognitive()
         
-        # Step 9: Start background services
-        print("\n[9/10] Starting background services...")
+        # Step 5: Start background services
+        print("\n[5/6] Starting background services...")
         await self.start_background_services()
         
-        # Step 10: Final initialization
-        print("\n[10/10] Final initialization...")
+        # Step 6: Final initialization
+        print("\n[6/6] Final initialization...")
         await self.final_initialization()
-        
-        # Get system status
-        neural_status = await neural_jarvis.get_status()
-        healing_status = await self_healing_jarvis.get_healing_status()
-        research_status = await llm_research_jarvis.get_research_status()
-        quantum_summary = quantum_jarvis.get_optimization_summary()
         
         print("""
         ╔══════════════════════════════════════════╗
@@ -103,12 +82,6 @@ class RealJARVISLauncher:
         ╚══════════════════════════════════════════╝
         
         Available Models: """ + str(list(multi_ai.available_models.keys())) + """
-        Neural Resources: """ + str(neural_status['neural_manager']['active_neurons']) + """ active neurons
-        Network Efficiency: """ + f"{neural_status['neural_manager']['network_efficiency']:.2%}" + """
-        Self-Healing: """ + ("Enabled" if healing_status['enabled'] else "Disabled") + """
-        LLM Research: """ + str(research_status['capabilities']['llm_providers']) + """
-        Quantum Optimization: Initialized with 25%+ efficiency gains
-        Dashboard: http://localhost:5555
         
         Say "Hey JARVIS" to interact!
         """)
@@ -126,6 +99,57 @@ class RealJARVISLauncher:
         
         self.services["websocket"] = server
         logger.info("WebSocket server started on port 8765")
+    
+    async def initialize_metacognitive(self):
+        """Initialize metacognitive introspection system"""
+        
+        try:
+            # Initialize subsystems if available
+            try:
+                self.neural_manager = NeuralJARVISIntegration()
+                await self.neural_manager.initialize()
+            except:
+                logger.warning("Neural manager unavailable")
+                
+            try:
+                self.self_healing = SelfHealingJARVISIntegration()
+                await self.self_healing.initialize()
+            except:
+                logger.warning("Self-healing unavailable")
+                
+            try:
+                self.llm_research = LLMResearchJARVIS()
+            except:
+                logger.warning("LLM research unavailable")
+                
+            try:
+                self.quantum_swarm = QuantumJARVISIntegration()
+            except:
+                logger.warning("Quantum swarm unavailable")
+            
+            # Initialize metacognitive system
+            self.metacognitive = MetaCognitiveJARVIS(
+                neural_manager=self.neural_manager,
+                self_healing=self.self_healing,
+                llm_research=self.llm_research,
+                quantum_swarm=self.quantum_swarm,
+                config={
+                    'reflection_interval': 60,
+                    'insight_threshold': 0.7,
+                    'enable_auto_improvement': True
+                }
+            )
+            
+            await self.metacognitive.initialize()
+            
+            # Get initial health report
+            health = await self.metacognitive.analyze_jarvis_health()
+            logger.info(f"Metacognitive system online - Health: {health['composite_health_score']:.2%}")
+            
+            self.services["metacognitive"] = self.metacognitive
+            
+        except Exception as e:
+            logger.error(f"Metacognitive initialization error: {e}")
         
     async def initialize_voice(self):
         """Initialize voice system with ElevenLabs"""

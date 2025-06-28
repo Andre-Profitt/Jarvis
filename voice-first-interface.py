@@ -24,6 +24,16 @@ sys.path.insert(0, str(Path(__file__).parent))
 from core.real_elevenlabs_integration import elevenlabs_integration
 from core.real_openai_integration import openai_integration
 
+import sys
+from pathlib import Path
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+# Import real integrations
+from core.real_elevenlabs_integration import elevenlabs_integration
+from core.real_openai_integration import openai_integration
+
 from transformers import (
     AutoModelForSpeechSeq2Seq, 
     AutoProcessor,
