@@ -23,9 +23,11 @@ class TestGeneratorBatch:
     
     def __init__(self, target_coverage: float = 80.0):
         self.target_coverage = target_coverage
-        self.template_path = Path("tests/test_generator_template.py")
-        self.metadata_dir = Path("tests/metadata")
-        self.generated_dir = Path("tests/generated")
+        # Use absolute paths
+        base_path = Path("/Users/andreprofitt/CloudAI/JARVIS-ECOSYSTEM")
+        self.template_path = base_path / "tests/test_generator_template.py"
+        self.metadata_dir = base_path / "tests/metadata"
+        self.generated_dir = base_path / "tests/generated"
         self.results = []
         
         # Create directories
@@ -526,7 +528,7 @@ async def test_{func["name"]}():
         
         for test_file in self.generated_dir.glob("test_*_generated.py"):
             final_name = test_file.name.replace('_generated', '')
-            final_path = Path('tests') / final_name
+            final_path = Path('/Users/andreprofitt/CloudAI/JARVIS-ECOSYSTEM/tests') / final_name
             
             if final_path.exists():
                 print(f"  ⚠️  {final_name} already exists, keeping as {test_file.name}")

@@ -748,7 +748,6 @@ class RobustFederatedClient:
             # Add calibrated noise
             if self.privacy_config.mechanism == PrivacyMechanism.GAUSSIAN:
                 noise_scale = self.dp_mechanism.calibrate_noise(
-        pass  # Fixed syntax error line 751
                     epsilon=self.privacy_budget / len(self.model.parameters()),
                     delta=self.privacy_config.delta,
                 )
