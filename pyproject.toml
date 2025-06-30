@@ -166,11 +166,25 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -q --strict-markers --cov=core --cov-report=html"
+addopts = """
+    -ra -q --strict-markers 
+    --cov=core --cov=plugins --cov=tools
+    --cov-report=html --cov-report=term-missing
+    --cov-report=xml --cov-branch
+    --cov-fail-under=80
+"""
 testpaths = ["tests"]
 python_files = "test_*.py"
+python_classes = "Test*"
 python_functions = "test_*"
 asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "security: marks tests as security tests",
+    "performance: marks tests as performance tests",
+]
 
 [tool.coverage.run]
 source = ["core", "plugins"]

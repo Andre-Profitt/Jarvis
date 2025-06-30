@@ -1,0 +1,117 @@
+# JARVIS Coverage Configuration
+# =============================
+# Fine-tuned coverage settings for comprehensive reporting
+
+[run]
+source = .
+omit = 
+    */tests/*
+    */test_*
+    */venv/*
+    */env/*
+    */__pycache__/*
+    */migrations/*
+    */node_modules/*
+    setup.py
+    */config/*
+    */scripts/*
+    # Exclude generated protobuf files if any
+    *_pb2.py
+    *_pb2_grpc.py
+    # Exclude experimental/prototype files
+    */experimental/*
+    */prototypes/*
+    # Exclude third-party integrations during initial testing
+    */third_party/*
+    # Exclude deployment scripts
+    */deploy/*
+    */deployment/*
+parallel = true
+concurrency = multiprocessing,thread,greenlet
+data_file = .coverage
+source_pkgs = core, plugins, tools
+
+[report]
+precision = 2
+skip_empty = true
+show_missing = true
+skip_covered = false
+sort = Cover
+exclude_lines =
+    # Standard pragmas
+    pragma: no cover
+    
+    # Debugging-only code
+    def __repr__
+    def __str__
+    
+    # Defensive programming
+    raise AssertionError
+    raise NotImplementedError
+    
+    # Type checking
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+    
+    # Main blocks
+    if __name__ == .__main__.:
+    if __name__ == "__main__":
+    
+    # Abstract methods
+    @abstract
+    @abstractmethod
+    @abc.abstractmethod
+    
+    # Protocol methods
+    @typing.runtime_checkable
+    
+    # Logging
+    logger.debug
+    logging.debug
+    
+    # Platform-specific code
+    if sys.platform
+    
+    # Version-specific code
+    if sys.version_info
+    
+    # Optional imports
+    except ImportError
+    except ModuleNotFoundError
+    
+    # Deprecated code
+    warnings.warn
+    @deprecated
+    
+    # Unreachable code
+    assert False
+    return NotImplemented
+    ...  # Ellipsis
+
+ignore_errors = true
+
+[html]
+directory = htmlcov
+title = JARVIS Test Coverage Report
+show_contexts = true
+
+[xml]
+output = coverage.xml
+
+[json]
+output = coverage.json
+pretty_print = true
+show_contexts = true
+
+[lcov]
+output = coverage.lcov
+
+[paths]
+# Map paths for coverage combining
+source =
+    core/
+    */site-packages/core
+    
+[context]
+# Add context to distinguish test types
+dynamic_context = test_function
