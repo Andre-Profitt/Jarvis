@@ -12,112 +12,120 @@ import subprocess
 import asyncio
 import json
 
+
 class JARVISFixer:
     def __init__(self):
         self.root = Path(__file__).parent
         self.fixes_applied = []
         self.errors = []
-        
+
     def run_all_fixes(self):
         """Run all fixes in sequence"""
-        
+
         print("🔧 JARVIS COMPREHENSIVE FIX SCRIPT")
         print("=" * 50)
-        
+
         # Fix 1: Update imports in multi-ai-integration.py
         self.fix_multi_ai_imports()
-        
+
         # Fix 2: Fix circular imports by reorganizing code
         self.fix_circular_imports()
-        
+
         # Fix 3: Update all files to use real implementations
         self.update_to_real_implementations()
-        
+
         # Fix 4: Add comprehensive error handling
         self.add_error_handling()
-        
+
         # Fix 5: Create proper initialization scripts
         self.create_init_scripts()
-        
+
         # Fix 6: Update launch script
         self.update_launch_script()
-        
+
         # Fix 7: Create health check system
         self.create_health_checks()
-        
+
         # Fix 8: Add logging configuration
         self.setup_logging()
-        
+
         # Fix 9: Create test structure
         self.create_test_structure()
-        
+
         # Fix 10: Final validation
         self.validate_fixes()
-        
+
         print("\n✅ FIXES COMPLETE!")
         print(f"Applied {len(self.fixes_applied)} fixes")
         if self.errors:
             print(f"⚠️ {len(self.errors)} errors encountered:")
             for error in self.errors:
                 print(f"  - {error}")
-    
+
     def fix_multi_ai_imports(self):
         """Update multi-ai-integration.py to use real implementations"""
-        
+
         print("\n📝 Fixing multi-AI imports...")
-        
+
         old_file = self.root / "multi-ai-integration.py"
         new_file = self.root / "core/updated_multi_ai_integration.py"
-        
+
         if new_file.exists():
             # Backup old file
-            shutil.copy(old_file, old_file.with_suffix('.py.bak'))
-            
+            shutil.copy(old_file, old_file.with_suffix(".py.bak"))
+
             # Copy new implementation
             shutil.copy(new_file, old_file)
-            
-            self.fixes_applied.append("Updated multi-AI integration to real implementation")
+
+            self.fixes_applied.append(
+                "Updated multi-AI integration to real implementation"
+            )
         else:
             self.errors.append("Could not find updated multi-AI integration")
-    
+
     def fix_circular_imports(self):
         """Fix circular import issues"""
-        
+
         print("\n🔄 Fixing circular imports...")
-        
+
         # Remove duplicate DeviceDiscoverer from missing_components.py
         missing_components_file = self.root / "missing_components.py"
-        
+
         if missing_components_file.exists():
             content = missing_components_file.read_text()
-            
+
             # Remove the duplicate DeviceDiscoverer class
-            lines = content.split('\n')
+            lines = content.split("\n")
             new_lines = []
             skip_class = False
-            
+
             for line in lines:
-                if line.startswith('class DeviceDiscoverer:'):
+                if line.startswith("class DeviceDiscoverer:"):
                     skip_class = True
-                elif skip_class and line and not line.startswith(' ') and not line.startswith('\t'):
+                elif (
+                    skip_class
+                    and line
+                    and not line.startswith(" ")
+                    and not line.startswith("\t")
+                ):
                     skip_class = False
-                
+
                 if not skip_class:
                     new_lines.append(line)
-            
-            missing_components_file.write_text('\n'.join(new_lines))
+
+            missing_components_file.write_text("\n".join(new_lines))
             self.fixes_applied.append("Fixed circular imports")
-    
+
     def update_to_real_implementations(self):
         """Update all placeholder implementations"""
-        
+
         print("\n🚀 Updating to real implementations...")
-        
+
         # Update voice-first-interface.py to use real integrations
         voice_file = self.root / "voice-first-interface.py"
         if voice_file.exists():
             content = voice_file.read_text()
-            
+
             # Add imports for real integrations
             import_section = """import os
 import sys
@@ -130,22 +138,24 @@ sys.path.insert(0, str(Path(__file__).parent))
 from core.real_elevenlabs_integration import elevenlabs_integration
 from core.real_openai_integration import openai_integration
 """
-            
+
             # Replace imports
-            lines = content.split('\n')
+            lines = content.split("\n")
             for i, line in enumerate(lines):
-                if line.startswith('import os'):
+                if line.startswith("import os"):
                     lines[i] = import_section
                     break
-            
-            voice_file.write_text('\n'.join(lines))
-            self.fixes_applied.append("Updated voice interface to use real integrations")
-    
+
+            voice_file.write_text("\n".join(lines))
+            self.fixes_applied.append(
+                "Updated voice interface to use real integrations"
+            )
+
     def add_error_handling(self):
         """Add comprehensive error handling"""
-        
+
         print("\n🛡️ Adding error handling...")
-        
+
         # Create error handler utility
         error_handler_code = '''#!/usr/bin/env python3
 """
@@ -204,35 +214,35 @@ class DeviceError(JARVISError):
     """Device communication errors"""
     pass
 '''
-        
+
         utils_dir = self.root / "utils"
         utils_dir.mkdir(exist_ok=True)
-        
+
         error_file = utils_dir / "error_handling.py"
         error_file.write_text(error_handler_code)
-        
+
         self.fixes_applied.append("Added comprehensive error handling")
-    
+
     def create_init_scripts(self):
         """Create proper __init__.py files"""
-        
+
         print("\n📦 Creating package initialization...")
-        
+
         dirs_needing_init = ["core", "utils", "tools", "mcp_servers"]
-        
+
         for dir_name in dirs_needing_init:
             dir_path = self.root / dir_name
             if dir_path.exists():
                 init_file = dir_path / "__init__.py"
                 init_file.touch()
-                
+
         self.fixes_applied.append("Created package __init__ files")
-    
+
     def update_launch_script(self):
         """Update launch script to use real services"""
-        
+
         print("\n🚀 Updating launch script...")
-        
+
         # Create enhanced launch script
         enhanced_launch = '''#!/usr/bin/env python3
 """
@@ -394,18 +404,18 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 '''
-        
+
         launch_file = self.root / "LAUNCH-JARVIS-REAL.py"
         launch_file.write_text(enhanced_launch)
         launch_file.chmod(0o755)
-        
+
         self.fixes_applied.append("Created enhanced launch script")
-    
+
     def create_health_checks(self):
         """Create comprehensive health check system"""
-        
+
         print("\n❤️ Creating health checks...")
-        
+
         health_check_code = '''#!/usr/bin/env python3
 """
 JARVIS Health Check System
@@ -534,17 +544,17 @@ class JARVISHealthCheck:
 # Create singleton
 health_checker = JARVISHealthCheck()
 '''
-        
+
         health_file = self.root / "core" / "health_checks.py"
         health_file.write_text(health_check_code)
-        
+
         self.fixes_applied.append("Created health check system")
-    
+
     def setup_logging(self):
         """Setup comprehensive logging"""
-        
+
         print("\n📝 Setting up logging...")
-        
+
         log_config = '''#!/usr/bin/env python3
 """
 JARVIS Logging Configuration
@@ -607,21 +617,21 @@ def setup_logging():
     
     return root_logger
 '''
-        
+
         log_file = self.root / "utils" / "logging_config.py"
         log_file.write_text(log_config)
-        
+
         self.fixes_applied.append("Setup comprehensive logging")
-    
+
     def create_test_structure(self):
         """Create basic test structure"""
-        
+
         print("\n🧪 Creating test structure...")
-        
+
         # Create test directories
         test_dir = self.root / "tests"
         test_dir.mkdir(exist_ok=True)
-        
+
         # Create basic test file
         basic_test = '''#!/usr/bin/env python3
 """
@@ -668,33 +678,36 @@ class TestJARVISCore:
 if __name__ == "__main__":
     pytest.main([__file__])
 '''
-        
+
         test_file = test_dir / "test_core.py"
         test_file.write_text(basic_test)
-        
+
         # Create pytest config
-        pytest_config = '''[tool.pytest.ini_options]
+        pytest_config = """[tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
-'''
-        
+"""
+
         pyproject_file = self.root / "pyproject.toml"
         pyproject_file.write_text(pytest_config)
-        
+
         self.fixes_applied.append("Created test structure")
-    
+
     def validate_fixes(self):
         """Validate all fixes were applied correctly"""
-        
+
         print("\n✔️ Validating fixes...")
-        
+
         validations = [
             (self.root / "core" / "real_claude_integration.py", "Claude integration"),
             (self.root / "core" / "real_openai_integration.py", "OpenAI integration"),
-            (self.root / "core" / "real_elevenlabs_integration.py", "ElevenLabs integration"),
+            (
+                self.root / "core" / "real_elevenlabs_integration.py",
+                "ElevenLabs integration",
+            ),
             (self.root / "core" / "websocket_security.py", "WebSocket security"),
             (self.root / "core" / "health_checks.py", "Health checks"),
             (self.root / "utils" / "error_handling.py", "Error handling"),
@@ -702,7 +715,7 @@ asyncio_mode = "auto"
             (self.root / "tests" / "test_core.py", "Test structure"),
             (self.root / "LAUNCH-JARVIS-REAL.py", "Enhanced launch script"),
         ]
-        
+
         all_valid = True
         for file_path, name in validations:
             if file_path.exists():
@@ -711,17 +724,17 @@ asyncio_mode = "auto"
                 print(f"  ❌ {name}")
                 all_valid = False
                 self.errors.append(f"Missing: {name}")
-        
+
         if all_valid:
             self.fixes_applied.append("All validations passed")
-        
+
         return all_valid
 
 
 if __name__ == "__main__":
     fixer = JARVISFixer()
     fixer.run_all_fixes()
-    
+
     print("\n🎯 Next Steps:")
     print("1. Install any missing dependencies: pip install -r requirements.txt")
     print("2. Set up your API keys in .env file")

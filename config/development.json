@@ -1,0 +1,42 @@
+{
+  "extends": "default.json",
+  
+  "jarvis": {
+    "mode": "dev"
+  },
+  
+  "logging": {
+    "level": "DEBUG"
+  },
+  
+  "ai_integration": {
+    "temperature": 0.9,
+    "timeout": 60
+  },
+  
+  "voice": {
+    "enabled": false,
+    "greeting": false
+  },
+  
+  "consciousness": {
+    "log_interval": 5,
+    "cycle_frequency": 2
+  },
+  
+  "monitoring": {
+    "health_check_interval": 10,
+    "metrics_interval": 30
+  },
+  
+  "database": {
+    "echo": true
+  },
+  
+  "security": {
+    "enable_auth": false,
+    "rate_limiting": {
+      "enabled": false
+    }
+  }
+}

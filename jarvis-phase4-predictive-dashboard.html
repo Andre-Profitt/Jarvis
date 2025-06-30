@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Phase 4 - Predictive Intelligence Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+            border-color: rgba(0, 255, 136, 0.3);
+        }
+
+        .panel h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #00ff88;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prediction-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+
+        .prediction-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border-left: 3px solid #00ccff;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .prediction-type {
+            font-size: 0.85em;
+            color: #00ccff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .prediction-value {
+            font-size: 1.1em;
+            margin: 5px 0;
+            color: #fff;
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00ccff);
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .context-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .context-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .context-label {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .pattern-visualization {
+            margin-top: 15px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pattern-node {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.8), transparent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+        }
+
+        .pattern-connection {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0, 204, 255, 0.6), transparent);
+            transform-origin: left center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .timeline {
+            margin-top: 15px;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, #00ff88, #00ccff);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin: 15px 0;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: #00ff88;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .preload-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #00ff88;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: pulse 1s infinite;
+        }
+
+        #ws-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            backdrop-filter: blur(10px);
+        }
+
+        .ws-connected {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid rgba(0, 255, 136, 0.5);
+            color: #00ff88;
+        }
+
+        .ws-disconnected {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.5);
+            color: #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <div id="ws-status" class="ws-disconnected">Disconnected</div>
+    
+    <div class="container">
+        <h1>🔮 JARVIS Predictive Intelligence Dashboard</h1>
+        
+        <div class="dashboard">
+            <!-- Current Context Panel -->
+            <div class="panel">
+                <h2>📍 Current Context</h2>
+                <div class="context-info">
+                    <div class="context-item">
+                        <div class="context-label">User State</div>
+                        <div id="current-state" class="pulse">Focused</div>
+                    </div>
+                    <div class="context-item">
+                        <div class="context-label">Active Task</div>
+                        <div id="current-task">None</div>
+                    </div>
+                    <div class="context-item">
+                        <div class="context-label">Environment</div>
+                        <div id="environment">Office</div>
+                    </div>
+                    <div class="context-item">
+                        <div class="context-label">Time Pattern</div>
+                        <div id="time-pattern">Morning</div>
+                    </div>
+                </div>
+                <div class="timeline" id="action-timeline">
+                    <div class="timeline-item">System initialized</div>
+                </div>
+            </div>
+
+            <!-- Active Predictions Panel -->
+            <div class="panel">
+                <h2>🔮 Active Predictions</h2>
+                <ul class="prediction-list" id="predictions">
+                    <li class="prediction-item">
+                        <div class="prediction-type">Next Action</div>
+                        <div class="prediction-value">Waiting for data...</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: 0%"></div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Pattern Learning Panel -->
+            <div class="panel">
+                <h2>🧠 Pattern Recognition</h2>
+                <div class="pattern-visualization" id="pattern-viz">
+                    <!-- Dynamic pattern visualization -->
+                </div>
+                <div id="pattern-insights" style="margin-top: 10px; font-size: 0.9em;">
+                    Analyzing patterns...
+                </div>
+            </div>
+
+            <!-- Preload Cache Panel -->
+            <div class="panel">
+                <h2>📦 Resource Preloading</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="hit-rate">0%</div>
+                        <div class="stat-label">Hit Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="cache-size">0</div>
+                        <div class="stat-label">Cached Items</div>
+                    </div>
+                </div>
+                <div id="preloaded-resources" style="margin-top: 15px;">
+                    <!-- List of preloaded resources -->
+                </div>
+            </div>
+
+            <!-- Performance Metrics Panel -->
+            <div class="panel">
+                <h2>📊 System Performance</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-predictions">0</div>
+                        <div class="stat-label">Total Predictions</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="accuracy">--%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="patterns-learned">0</div>
+                        <div class="stat-label">Patterns Learned</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="contexts-analyzed">0</div>
+                        <div class="stat-label">Contexts Analyzed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- State Transitions Panel -->
+            <div class="panel">
+                <h2>🎭 State Transitions</h2>
+                <div id="state-transitions" style="margin-top: 10px;">
+                    <!-- Dynamic state transition visualization -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection for real-time updates
+        let ws = null;
+        let reconnectInterval = null;
+
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8766');
+            
+            ws.onopen = () => {
+                console.log('Connected to JARVIS Predictive Intelligence');
+                document.getElementById('ws-status').className = 'ws-connected';
+                document.getElementById('ws-status').textContent = 'Connected';
+                
+                if (reconnectInterval) {
+                    clearInterval(reconnectInterval);
+                    reconnectInterval = null;
+                }
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                updateDashboard(data);
+            };
+
+            ws.onclose = () => {
+                document.getElementById('ws-status').className = 'ws-disconnected';
+                document.getElementById('ws-status').textContent = 'Disconnected';
+                
+                if (!reconnectInterval) {
+                    reconnectInterval = setInterval(connectWebSocket, 5000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function updateDashboard(data) {
+            // Update current context
+            if (data.context) {
+                document.getElementById('current-state').textContent = data.context.user_state;
+                document.getElementById('current-task').textContent = data.context.active_task || 'None';
+                
+                // Update timeline
+                if (data.context.recent_action) {
+                    addTimelineItem(data.context.recent_action);
+                }
+            }
+
+            // Update predictions
+            if (data.predictions) {
+                updatePredictions(data.predictions);
+            }
+
+            // Update stats
+            if (data.stats) {
+                document.getElementById('hit-rate').textContent = 
+                    Math.round(data.stats.hit_rate * 100) + '%';
+                document.getElementById('cache-size').textContent = 
+                    data.stats.cache_size;
+                document.getElementById('total-predictions').textContent = 
+                    data.stats.total_predictions || 0;
+                document.getElementById('patterns-learned').textContent = 
+                    data.stats.patterns_learned || 0;
+                document.getElementById('contexts-analyzed').textContent = 
+                    data.stats.contexts_analyzed || 0;
+            }
+
+            // Update pattern visualization
+            if (data.patterns) {
+                updatePatternVisualization(data.patterns);
+            }
+
+            // Update state transitions
+            if (data.transitions) {
+                updateStateTransitions(data.transitions);
+            }
+        }
+
+        function updatePredictions(predictions) {
+            const container = document.getElementById('predictions');
+            container.innerHTML = '';
+
+            predictions.forEach(pred => {
+                const item = document.createElement('li');
+                item.className = 'prediction-item';
+                item.innerHTML = `
+                    <div class="prediction-type">${pred.type}</div>
+                    <div class="prediction-value">${pred.value}</div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${pred.confidence * 100}%"></div>
+                    </div>
+                    <div style="font-size: 0.85em; color: #888; margin-top: 5px;">
+                        ${pred.reasoning} • ${pred.time_horizon}
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function addTimelineItem(action) {
+            const timeline = document.getElementById('action-timeline');
+            const item = document.createElement('div');
+            item.className = 'timeline-item';
+            item.textContent = `${new Date().toLocaleTimeString()} - ${action}`;
+            
+            timeline.insertBefore(item, timeline.firstChild.nextSibling);
+            
+            // Keep only last 5 items
+            while (timeline.children.length > 6) {
+                timeline.removeChild(timeline.lastChild);
+            }
+        }
+
+        function updatePatternVisualization(patterns) {
+            const viz = document.getElementById('pattern-viz');
+            viz.innerHTML = '';
+
+            // Simple visualization of top patterns
+            const nodes = [];
+            const connections = [];
+
+            patterns.forEach((pattern, i) => {
+                const angle = (i / patterns.length) * 2 * Math.PI;
+                const x = 100 + 80 * Math.cos(angle);
+                const y = 100 + 80 * Math.sin(angle);
+
+                nodes.push({ x, y, label: pattern.from });
+
+                if (i > 0) {
+                    connections.push({
+                        from: nodes[i-1],
+                        to: { x, y },
+                        strength: pattern.count
+                    });
+                }
+            });
+
+            // Draw connections
+            connections.forEach(conn => {
+                const line = document.createElement('div');
+                line.className = 'pattern-connection';
+                const dx = conn.to.x - conn.from.x;
+                const dy = conn.to.y - conn.from.y;
+                const length = Math.sqrt(dx*dx + dy*dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                
+                line.style.width = length + 'px';
+                line.style.left = conn.from.x + 'px';
+                line.style.top = conn.from.y + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+                line.style.opacity = Math.min(conn.strength / 10, 1);
+                
+                viz.appendChild(line);
+            });
+
+            // Draw nodes
+            nodes.forEach(node => {
+                const el = document.createElement('div');
+                el.className = 'pattern-node';
+                el.style.left = (node.x - 30) + 'px';
+                el.style.top = (node.y - 30) + 'px';
+                el.textContent = node.label.substring(0, 3);
+                viz.appendChild(el);
+            });
+        }
+
+        function updateStateTransitions(transitions) {
+            const container = document.getElementById('state-transitions');
+            container.innerHTML = '';
+
+            transitions.forEach(trans => {
+                const item = document.createElement('div');
+                item.style.margin = '10px 0';
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #00ff88">${trans.from}</span>
+                        <span style="color: #666">→</span>
+                        <span style="color: #00ccff">${trans.to}</span>
+                        <span style="color: #888; font-size: 0.9em;">(${trans.count} times)</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Demo data for standalone viewing
+        function generateDemoData() {
+            const demoData = {
+                context: {
+                    user_state: ['Focused', 'Relaxed', 'Stressed'][Math.floor(Math.random() * 3)],
+                    active_task: ['Email Review', 'Code Development', 'Meeting Prep'][Math.floor(Math.random() * 3)],
+                    recent_action: ['Opened document', 'Saved file', 'Switched application'][Math.floor(Math.random() * 3)]
+                },
+                predictions: [
+                    {
+                        type: 'Next Action',
+                        value: 'Open email client',
+                        confidence: 0.85,
+                        reasoning: 'Morning routine pattern',
+                        time_horizon: '5 minutes'
+                    },
+                    {
+                        type: 'Resource Need',
+                        value: 'Quarterly report template',
+                        confidence: 0.72,
+                        reasoning: 'Task context analysis',
+                        time_horizon: '15 minutes'
+                    }
+                ],
+                stats: {
+                    hit_rate: 0.78,
+                    cache_size: 5,
+                    total_predictions: 147,
+                    patterns_learned: 23,
+                    contexts_analyzed: 892
+                },
+                patterns: [
+                    { from: 'Email', to: 'Calendar', count: 15 },
+                    { from: 'Calendar', to: 'Tasks', count: 12 },
+                    { from: 'Tasks', to: 'Code', count: 8 }
+                ],
+                transitions: [
+                    { from: 'Focused', to: 'Tired', count: 18 },
+                    { from: 'Tired', to: 'Break', count: 16 },
+                    { from: 'Break', to: 'Focused', count: 14 }
+                ]
+            };
+
+            updateDashboard(demoData);
+        }
+
+        // Initialize
+        connectWebSocket();
+
+        // If no WebSocket connection, show demo data
+        setTimeout(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                generateDemoData();
+                setInterval(generateDemoData, 5000);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

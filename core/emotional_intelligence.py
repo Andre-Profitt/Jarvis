@@ -1,491 +1,717 @@
-#!/usr/bin/env python3
 """
-JARVIS Personal Emotional Intelligence System
-Simplified for single-user personal assistant use
+JARVIS Phase 6: Emotional Intelligence Engine
+===========================================
+Advanced emotional understanding and response adaptation
 """
 
 import asyncio
 import numpy as np
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Any
-from enum import Enum
-import torch
-import torch.nn as nn
+from typing import Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
 from collections import deque
-import time
+from dataclasses import dataclass, field
 import json
-from datetime import datetime
-from transformers import pipeline
-import structlog
-from pathlib import Path
-
-from .monitoring import monitor_performance, monitoring_service
-from .config_manager import config_manager
-
-logger = structlog.get_logger()
-
-
-class EmotionType(Enum):
-    """Core emotions JARVIS can detect"""
-    NEUTRAL = "neutral"
-    HAPPY = "happy"
-    SAD = "sad"
-    ANGRY = "angry"
-    STRESSED = "stressed"
-    EXCITED = "excited"
-    FRUSTRATED = "frustrated"
-    CONTENT = "content"
-    ANXIOUS = "anxious"
-    FOCUSED = "focused"
-    TIRED = "tired"
-
+import math
 
 @dataclass
 class EmotionalState:
-    """Your current emotional state"""
-    primary_emotion: EmotionType
-    intensity: float  # 0.0 to 1.0
-    confidence: float
-    trigger: Optional[str] = None  # What caused this emotion
-    duration_minutes: float = 0.0
-    suggestions: List[str] = None
+    """Comprehensive emotional state representation"""
+    valence: float = 0.0  # -1 (negative) to 1 (positive)
+    arousal: float = 0.0  # -1 (calm) to 1 (excited)
+    dominance: float = 0.0  # -1 (submissive) to 1 (dominant)
     
-    def __str__(self):
-        return f"{self.primary_emotion.value.title()} (intensity: {self.intensity:.1%})"
-
+    @property
+    def quadrant(self) -> str:
+        """Get emotional quadrant based on valence and arousal"""
+        if self.valence > 0 and self.arousal > 0:
+            return "excited_happy"  # Joy, excitement
+        elif self.valence > 0 and self.arousal <= 0:
+            return "calm_happy"     # Content, peaceful
+        elif self.valence <= 0 and self.arousal > 0:
+            return "excited_unhappy"  # Angry, frustrated
+        else:
+            return "calm_unhappy"   # Sad, depressed
+            
+    def distance_to(self, other: 'EmotionalState') -> float:
+        """Calculate emotional distance to another state"""
+        return math.sqrt(
+            (self.valence - other.valence) ** 2 +
+            (self.arousal - other.arousal) ** 2 +
+            (self.dominance - other.dominance) ** 2
+        )
 
 @dataclass
-class UserContext:
-    """Context about your current situation"""
-    time_of_day: float
-    work_duration_hours: float = 0.0
-    last_break_minutes_ago: float = 0.0
-    calendar_next: Optional[str] = None  # Next event
-    recent_activities: List[str] = None
-    location: str = "home"  # home, office, traveling
-    
-    @property
-    def is_late_night(self) -> bool:
-        return self.time_of_day >= 22 or self.time_of_day <= 5
-    
-    @property
-    def needs_break(self) -> bool:
-        return self.work_duration_hours > 2 and self.last_break_minutes_ago > 90
+class EmotionalMemory:
+    """Long-term emotional memory and patterns"""
+    state: EmotionalState
+    timestamp: datetime
+    context: Dict
+    triggers: List[str] = field(default_factory=list)
+    response_effectiveness: float = 0.5
 
-
-class SimpleEmotionDetector:
-    """Simplified emotion detection using pre-trained models"""
+class EmotionalIntelligence:
+    """Advanced emotional understanding and adaptation"""
     
     def __init__(self):
-        try:
-            # Use HuggingFace sentiment pipeline for text
-            self.text_classifier = pipeline(
-                "sentiment-analysis",
-                model="j-hartmann/emotion-english-distilroberta-base"
-            )
-            self.model_available = True
-        except Exception as e:
-            logger.warning(f"Could not load emotion model: {e}")
-            self.model_available = False
+        self.current_state = EmotionalState()
+        self.target_state = EmotionalState(valence=0.5, arousal=0.0)  # Calm positive
+        self.emotional_history = deque(maxlen=100)
+        self.pattern_memory = deque(maxlen=500)
+        self.emotional_triggers = self._initialize_triggers()
+        self.response_strategies = self._initialize_strategies()
+        self.empathy_model = self._initialize_empathy_model()
         
-        # Simple patterns for additional context
-        self.stress_indicators = [
-            "can't", "impossible", "frustrated", "stuck", "deadline",
-            "overwhelmed", "too much", "exhausted", "stressed"
-        ]
-        
-        self.happiness_indicators = [
-            "excited", "great", "awesome", "perfect", "wonderful",
-            "amazing", "fantastic", "accomplished", "success"
-        ]
-    
-    def analyze_text(self, text: str) -> Dict[EmotionType, float]:
-        """Analyze emotion from text"""
-        emotions = {}
-        
-        if self.model_available:
-            try:
-                # Get emotions from model
-                results = self.text_classifier(text)
-                
-                # Convert to our emotion types
-                emotion_map = {
-                    'anger': EmotionType.ANGRY,
-                    'disgust': EmotionType.FRUSTRATED,
-                    'fear': EmotionType.ANXIOUS,
-                    'joy': EmotionType.HAPPY,
-                    'neutral': EmotionType.NEUTRAL,
-                    'sadness': EmotionType.SAD,
-                    'surprise': EmotionType.EXCITED
-                }
-                
-                for result in results[:1]:  # Take top result
-                    emotion_type = emotion_map.get(result['label'].lower(), EmotionType.NEUTRAL)
-                    emotions[emotion_type] = result['score']
-            except Exception as e:
-                logger.error(f"Model inference failed: {e}")
-                emotions[EmotionType.NEUTRAL] = 0.5
-        else:
-            # Fallback to keyword analysis
-            emotions[EmotionType.NEUTRAL] = 0.5
-        
-        # Add stress detection
-        text_lower = text.lower()
-        stress_count = sum(1 for word in self.stress_indicators if word in text_lower)
-        if stress_count > 0:
-            emotions[EmotionType.STRESSED] = min(0.3 + stress_count * 0.2, 0.9)
-        
-        # Add happiness detection
-        happy_count = sum(1 for word in self.happiness_indicators if word in text_lower)
-        if happy_count > 0:
-            emotions[EmotionType.HAPPY] = min(0.3 + happy_count * 0.2, 0.9)
-        
-        return emotions
-
-
-class PersonalEmotionalIntelligence:
-    """JARVIS's emotional intelligence system for personal use"""
-    
-    def __init__(self):
-        self.detector = SimpleEmotionDetector()
-        self.emotion_history = deque(maxlen=50)  # Last 50 emotional states
-        self.daily_patterns = {}  # Track your patterns
-        
-        # Personal thresholds (can be customized)
-        self.stress_threshold = config_manager.get("emotional_intelligence.stress_threshold", 0.6)
-        self.intervention_threshold = config_manager.get("emotional_intelligence.intervention_threshold", 0.7)
-        
-        # Your personal preferences
-        self.preferences = {
-            "break_reminder_style": config_manager.get("emotional_intelligence.reminder_style", "gentle"),
-            "intervention_types": config_manager.get("emotional_intelligence.intervention_types", 
-                                                   ["breathing", "music", "walk", "gaming"]),
-            "work_session_length": config_manager.get("emotional_intelligence.work_session_minutes", 90),
+    def _initialize_triggers(self) -> Dict:
+        """Initialize emotional trigger patterns"""
+        return {
+            "stress_indicators": {
+                "words": ["overwhelmed", "stressed", "anxious", "worried", "panic"],
+                "patterns": ["too much", "can't handle", "falling behind", "no time"],
+                "biometric": {"heart_rate": 90, "breathing_rate": 20}
+            },
+            "joy_indicators": {
+                "words": ["excited", "happy", "great", "wonderful", "amazing"],
+                "patterns": ["can't wait", "looking forward", "best day"],
+                "biometric": {"heart_rate": 75, "vocal_pitch": 1.1}
+            },
+            "anger_indicators": {
+                "words": ["angry", "furious", "pissed", "frustrated", "annoyed"],
+                "patterns": ["sick of", "had enough", "can't stand"],
+                "biometric": {"heart_rate": 95, "vocal_volume": 1.3}
+            },
+            "sadness_indicators": {
+                "words": ["sad", "depressed", "down", "lonely", "hurt"],
+                "patterns": ["miss", "wish", "used to", "never be"],
+                "biometric": {"heart_rate": 65, "vocal_pitch": 0.9}
+            }
         }
         
-        # Load emotion history if exists
-        self._load_history()
-        
-        logger.info("JARVIS Emotional Intelligence initialized")
-    
-    def _load_history(self):
-        """Load emotion history from storage"""
-        history_file = Path(config_manager.get("paths.storage", "./storage")) / "emotion_history.json"
-        if history_file.exists():
-            try:
-                with open(history_file, 'r') as f:
-                    data = json.load(f)
-                    # Convert back to EmotionalState objects
-                    for entry in data[-50:]:  # Last 50 entries
-                        state = EmotionalState(
-                            primary_emotion=EmotionType(entry['primary_emotion']),
-                            intensity=entry['intensity'],
-                            confidence=entry['confidence'],
-                            trigger=entry.get('trigger'),
-                            duration_minutes=entry.get('duration_minutes', 0),
-                            suggestions=entry.get('suggestions', [])
-                        )
-                        self.emotion_history.append((entry['timestamp'], state))
-            except Exception as e:
-                logger.error(f"Failed to load emotion history: {e}")
-    
-    def _save_history(self):
-        """Save emotion history to storage"""
-        history_file = Path(config_manager.get("paths.storage", "./storage")) / "emotion_history.json"
-        history_file.parent.mkdir(exist_ok=True)
-        
-        try:
-            data = []
-            for timestamp, state in self.emotion_history:
-                data.append({
-                    'timestamp': timestamp,
-                    'primary_emotion': state.primary_emotion.value,
-                    'intensity': state.intensity,
-                    'confidence': state.confidence,
-                    'trigger': state.trigger,
-                    'duration_minutes': state.duration_minutes,
-                    'suggestions': state.suggestions
-                })
-            
-            with open(history_file, 'w') as f:
-                json.dump(data, f, indent=2)
-        except Exception as e:
-            logger.error(f"Failed to save emotion history: {e}")
-    
-    @monitor_performance("emotional_intelligence")
-    async def analyze_emotion(
-        self, 
-        text: Optional[str] = None,
-        context: Optional[UserContext] = None,
-        voice_tone: Optional[Dict[str, float]] = None
-    ) -> EmotionalState:
-        """Analyze your current emotional state"""
-        
-        emotions = {}
-        
-        # Analyze text if provided
-        if text:
-            emotions = self.detector.analyze_text(text)
-        
-        # Add voice analysis if available
-        if voice_tone:
-            if voice_tone.get('pitch_variance', 0) > 50:
-                emotions[EmotionType.STRESSED] = emotions.get(EmotionType.STRESSED, 0) + 0.3
-            if voice_tone.get('energy', 0) < 0.3:
-                emotions[EmotionType.TIRED] = emotions.get(EmotionType.TIRED, 0) + 0.4
-        
-        # Context-based adjustments
-        if context:
-            # Late night work detection
-            if context.is_late_night and context.work_duration_hours > 0:
-                emotions[EmotionType.TIRED] = emotions.get(EmotionType.TIRED, 0) + 0.4
-            
-            # Long work session detection
-            if context.needs_break:
-                emotions[EmotionType.STRESSED] = emotions.get(EmotionType.STRESSED, 0) + 0.2
-                emotions[EmotionType.TIRED] = emotions.get(EmotionType.TIRED, 0) + 0.3
-        
-        # Determine primary emotion
-        if not emotions:
-            emotions = {EmotionType.NEUTRAL: 0.8}
-        
-        primary_emotion = max(emotions, key=emotions.get)
-        intensity = emotions[primary_emotion]
-        
-        # Calculate confidence (simple version)
-        confidence = 0.9 if text else 0.6
-        if voice_tone:
-            confidence = min(confidence + 0.2, 0.95)
-        
-        # Create emotional state
-        state = EmotionalState(
-            primary_emotion=primary_emotion,
-            intensity=intensity,
-            confidence=confidence,
-            trigger=self._identify_trigger(text, context),
-            duration_minutes=self._calculate_duration(primary_emotion),
-            suggestions=self._generate_suggestions(primary_emotion, intensity, context)
-        )
-        
-        # Update history
-        self.emotion_history.append((time.time(), state))
-        self._save_history()
-        
-        # Update metrics
-        monitoring_service.metrics_collector.record_event({
-            "timestamp": datetime.utcnow().isoformat(),
-            "event_type": "emotion_detected",
-            "component": "emotional_intelligence",
-            "metrics": {
-                "emotion": primary_emotion.value,
-                "intensity": intensity,
-                "confidence": confidence
+    def _initialize_strategies(self) -> Dict:
+        """Initialize response strategies for different emotional states"""
+        return {
+            "excited_happy": {
+                "mirror": "Match their energy and enthusiasm",
+                "actions": ["celebrate", "encourage", "amplify"],
+                "tone_adjustment": {"energy": 1.2, "positivity": 1.3},
+                "phrases": ["That's fantastic!", "I'm excited for you!", "This is amazing!"]
+            },
+            "calm_happy": {
+                "maintain": "Keep the peaceful, content atmosphere",
+                "actions": ["support", "appreciate", "flow"],
+                "tone_adjustment": {"energy": 0.8, "positivity": 1.1},
+                "phrases": ["That's wonderful", "I'm glad to hear that", "Sounds peaceful"]
+            },
+            "excited_unhappy": {
+                "de-escalate": "Calm and redirect the energy",
+                "actions": ["validate", "breathe", "problem-solve"],
+                "tone_adjustment": {"energy": 0.6, "calmness": 1.4},
+                "phrases": ["I hear your frustration", "Let's work through this", "Take a breath"]
+            },
+            "calm_unhappy": {
+                "uplift": "Gently increase energy and positivity",
+                "actions": ["empathize", "comfort", "hope"],
+                "tone_adjustment": {"warmth": 1.3, "gentleness": 1.2},
+                "phrases": ["I'm here with you", "It's okay to feel this way", "We'll get through this"]
             }
-        })
+        }
         
-        # Log significant emotions
-        if intensity > self.intervention_threshold:
-            logger.info(f"High intensity {primary_emotion.value}: {intensity:.1%}")
+    def _initialize_empathy_model(self) -> Dict:
+        """Initialize empathy and understanding patterns"""
+        return {
+            "validation_templates": [
+                "Your feelings about {situation} are completely valid",
+                "It makes sense that you'd feel {emotion} given {context}",
+                "Anyone would feel {emotion} in this situation"
+            ],
+            "reflection_templates": [
+                "What I'm hearing is that you're feeling {emotion} because {reason}",
+                "It sounds like {situation} is really affecting you",
+                "You're experiencing {emotion} and that's weighing on you"
+            ],
+            "support_templates": [
+                "I'm here to support you through this",
+                "Let's work together on {goal}",
+                "You don't have to handle this alone"
+            ]
+        }
+        
+    async def analyze_emotional_content(self, 
+                                      text: str, 
+                                      voice_features: Optional[Dict] = None,
+                                      biometrics: Optional[Dict] = None,
+                                      context: Optional[Dict] = None) -> Dict:
+        """Comprehensive emotional analysis"""
+        
+        # Text-based emotion detection
+        text_emotions = self._analyze_text_emotions(text)
+        
+        # Voice-based emotion detection
+        voice_emotions = self._analyze_voice_emotions(voice_features) if voice_features else None
+        
+        # Biometric-based emotion detection
+        bio_emotions = self._analyze_biometric_emotions(biometrics) if biometrics else None
+        
+        # Combine all signals
+        combined_state = self._combine_emotional_signals(text_emotions, voice_emotions, bio_emotions)
+        
+        # Detect emotional patterns
+        patterns = self._detect_emotional_patterns(combined_state, context)
+        
+        # Calculate emotional trajectory
+        trajectory = self._calculate_trajectory(combined_state)
+        
+        # Generate empathetic understanding
+        understanding = self._generate_empathetic_understanding(combined_state, text, context)
+        
+        # Update internal state
+        self._update_emotional_state(combined_state, context)
+        
+        return {
+            "current_state": {
+                "valence": combined_state.valence,
+                "arousal": combined_state.arousal,
+                "dominance": combined_state.dominance,
+                "quadrant": combined_state.quadrant
+            },
+            "trajectory": trajectory,
+            "patterns": patterns,
+            "understanding": understanding,
+            "recommended_response": self._recommend_response_strategy(combined_state, trajectory)
+        }
+        
+    def _analyze_text_emotions(self, text: str) -> EmotionalState:
+        """Analyze emotions from text content"""
+        state = EmotionalState()
+        text_lower = text.lower()
+        
+        # Check each trigger category
+        for emotion, indicators in self.emotional_triggers.items():
+            word_score = sum(1 for word in indicators["words"] if word in text_lower)
+            pattern_score = sum(1 for pattern in indicators["patterns"] if pattern in text_lower)
+            
+            total_score = word_score + pattern_score * 2  # Patterns weighted more
+            
+            # Map to emotional dimensions
+            if "stress" in emotion or "anger" in emotion:
+                state.valence -= total_score * 0.2
+                state.arousal += total_score * 0.3
+            elif "joy" in emotion:
+                state.valence += total_score * 0.3
+                state.arousal += total_score * 0.2
+            elif "sad" in emotion:
+                state.valence -= total_score * 0.3
+                state.arousal -= total_score * 0.2
+                
+        # Normalize to [-1, 1]
+        state.valence = max(-1, min(1, state.valence))
+        state.arousal = max(-1, min(1, state.arousal))
+        
+        # Dominance from language patterns
+        if any(word in text_lower for word in ["i need", "must", "have to", "demanding"]):
+            state.dominance += 0.3
+        elif any(word in text_lower for word in ["please", "could you", "would you mind"]):
+            state.dominance -= 0.2
+            
+        state.dominance = max(-1, min(1, state.dominance))
         
         return state
-    
-    def _identify_trigger(self, text: Optional[str], context: Optional[UserContext]) -> Optional[str]:
-        """Identify what might have triggered the emotion"""
+        
+    def _analyze_voice_emotions(self, voice_features: Dict) -> EmotionalState:
+        """Analyze emotions from voice features"""
+        state = EmotionalState()
+        
+        # Pitch indicates arousal and valence
+        pitch_ratio = voice_features.get("pitch_ratio", 1.0)
+        if pitch_ratio > 1.1:
+            state.arousal += 0.3
+            state.valence += 0.1  # Higher pitch often positive
+        elif pitch_ratio < 0.9:
+            state.arousal -= 0.2
+            state.valence -= 0.1
+            
+        # Volume indicates arousal and dominance
+        volume_ratio = voice_features.get("volume_ratio", 1.0)
+        if volume_ratio > 1.2:
+            state.arousal += 0.3
+            state.dominance += 0.2
+        elif volume_ratio < 0.8:
+            state.arousal -= 0.2
+            state.dominance -= 0.3
+            
+        # Speaking rate indicates arousal
+        rate_ratio = voice_features.get("rate_ratio", 1.0)
+        if rate_ratio > 1.2:
+            state.arousal += 0.4
+        elif rate_ratio < 0.8:
+            state.arousal -= 0.3
+            
+        # Voice quality
+        if voice_features.get("tremor", 0) > 0.5:
+            state.valence -= 0.3  # Tremor indicates distress
+            
+        return state
+        
+    def _analyze_biometric_emotions(self, biometrics: Dict) -> EmotionalState:
+        """Analyze emotions from biometric data"""
+        state = EmotionalState()
+        
+        # Heart rate
+        hr = biometrics.get("heart_rate", 70)
+        if hr > 100:
+            state.arousal += 0.5
+            # Could be excitement or stress
+            if biometrics.get("hrv", 50) < 30:
+                state.valence -= 0.3  # Low HRV suggests stress
+        elif hr < 60:
+            state.arousal -= 0.3
+            
+        # Skin conductance (if available)
+        gsr = biometrics.get("skin_conductance", 1.0)
+        if gsr > 1.5:
+            state.arousal += 0.4
+            
+        # Breathing rate
+        br = biometrics.get("breathing_rate", 15)
+        if br > 20:
+            state.arousal += 0.3
+            state.valence -= 0.2  # Fast breathing often negative
+        elif br < 12:
+            state.arousal -= 0.2
+            state.valence += 0.1  # Slow breathing often positive
+            
+        return state
+        
+    def _combine_emotional_signals(self, 
+                                 text: Optional[EmotionalState],
+                                 voice: Optional[EmotionalState],
+                                 bio: Optional[EmotionalState]) -> EmotionalState:
+        """Combine multiple emotional signals with weighted averaging"""
+        weights = {"text": 0.4, "voice": 0.35, "bio": 0.25}
+        combined = EmotionalState()
+        
+        total_weight = 0
+        
         if text:
-            # Simple keyword matching
-            text_lower = text.lower()
-            if "deadline" in text_lower:
-                return "upcoming deadline"
-            elif "meeting" in text_lower:
-                return "meeting-related"
-            elif "bug" in text_lower or "error" in text_lower:
-                return "technical issue"
-            elif "success" in text_lower or "fixed" in text_lower:
-                return "achievement"
-            elif "family" in text_lower or "brother" in text_lower:
-                return "family-related"
-        
-        if context and context.work_duration_hours > 3:
-            return "extended work session"
-        
-        return None
-    
-    def _calculate_duration(self, emotion: EmotionType) -> float:
-        """Calculate how long you've been in this emotional state"""
-        if not self.emotion_history:
-            return 0.0
-        
-        duration = 0.0
-        current_time = time.time()
-        
-        for timestamp, state in reversed(self.emotion_history):
-            if state.primary_emotion == emotion:
-                duration = (current_time - timestamp) / 60  # minutes
-            else:
-                break
-        
-        return duration
-    
-    def _generate_suggestions(
-        self, 
-        emotion: EmotionType, 
-        intensity: float,
-        context: Optional[UserContext]
-    ) -> List[str]:
-        """Generate personalized suggestions based on your state"""
-        suggestions = []
-        
-        if emotion == EmotionType.STRESSED and intensity > self.stress_threshold:
-            suggestions.extend([
-                "Take 5 deep breaths (4-7-8 technique)",
-                "Quick 5-minute walk outside",
-                "Play your 'Calm' Spotify playlist",
-                "Try the 2-minute meditation"
-            ])
+            combined.valence += text.valence * weights["text"]
+            combined.arousal += text.arousal * weights["text"]
+            combined.dominance += text.dominance * weights["text"]
+            total_weight += weights["text"]
             
-            if context and context.needs_break:
-                suggestions.insert(0, "You've been working for a while - time for a proper break!")
-        
-        elif emotion == EmotionType.TIRED:
-            suggestions.extend([
-                "20-minute power nap",
-                "Get some fresh air",
-                "Hydrate - grab some water",
-                "Light stretching routine"
-            ])
+        if voice:
+            combined.valence += voice.valence * weights["voice"]
+            combined.arousal += voice.arousal * weights["voice"]
+            combined.dominance += voice.dominance * weights["voice"]
+            total_weight += weights["voice"]
             
-            if context and context.is_late_night:
-                suggestions.insert(0, "Consider wrapping up for the night")
-        
-        elif emotion == EmotionType.FRUSTRATED:
-            suggestions.extend([
-                "Step away from the problem for 10 minutes",
-                "Try explaining the issue out loud (rubber duck debugging)",
-                "Switch to a different task temporarily",
-                "Quick gaming session to reset?"
-            ])
-        
-        elif emotion == EmotionType.HAPPY or emotion == EmotionType.EXCITED:
-            suggestions.extend([
-                "Great job! Ride this momentum",
-                "Perfect time to tackle that challenging task",
-                "Share your success with someone"
-            ])
-        
-        elif emotion == EmotionType.ANXIOUS:
-            suggestions.extend([
-                "Ground yourself: 5 things you see, 4 you hear, 3 you touch",
-                "Write down what's worrying you",
-                "Progressive muscle relaxation",
-                "Call a friend or family member"
-            ])
-        
-        return suggestions[:3]  # Top 3 suggestions
-    
-    def get_emotional_summary(self) -> Dict[str, Any]:
-        """Get a summary of your recent emotional patterns"""
-        if not self.emotion_history:
-            return {"message": "No emotional data yet"}
-        
-        # Count emotions in last 2 hours
-        two_hours_ago = time.time() - 7200
-        recent_emotions = {}
-        
-        for timestamp, state in self.emotion_history:
-            if timestamp > two_hours_ago:
-                emotion = state.primary_emotion
-                recent_emotions[emotion] = recent_emotions.get(emotion, 0) + 1
-        
-        # Find dominant emotion
-        if recent_emotions:
-            dominant = max(recent_emotions, key=recent_emotions.get)
-            total = sum(recent_emotions.values())
+        if bio:
+            combined.valence += bio.valence * weights["bio"]
+            combined.arousal += bio.arousal * weights["bio"]
+            combined.dominance += bio.dominance * weights["bio"]
+            total_weight += weights["bio"]
             
-            return {
-                "dominant_emotion": dominant.value,
-                "percentage": recent_emotions[dominant] / total,
-                "variety": len(recent_emotions),
-                "states_tracked": total,
-                "recommendation": self._get_overall_recommendation(dominant, recent_emotions)
-            }
+        # Normalize by actual weights used
+        if total_weight > 0:
+            combined.valence /= total_weight
+            combined.arousal /= total_weight
+            combined.dominance /= total_weight
+            
+        return combined
         
-        return {"message": "Not enough recent data"}
-    
-    def _get_overall_recommendation(self, dominant: EmotionType, emotion_counts: Dict) -> str:
-        """Get overall recommendation based on patterns"""
+    def _detect_emotional_patterns(self, state: EmotionalState, context: Dict) -> List[str]:
+        """Detect emotional patterns and cycles"""
+        patterns = []
         
-        stress_emotions = [EmotionType.STRESSED, EmotionType.FRUSTRATED, EmotionType.ANXIOUS]
-        stress_count = sum(emotion_counts.get(e, 0) for e in stress_emotions)
-        total_count = sum(emotion_counts.values())
+        # Check recent history
+        recent_states = [em.state for em in list(self.emotional_history)[-10:]]
         
-        if stress_count / total_count > 0.6:
-            return "High stress detected. Consider taking a longer break or switching activities."
-        elif dominant == EmotionType.TIRED:
-            return "Fatigue is dominant. Prioritize rest and consider postponing complex tasks."
-        elif dominant in [EmotionType.HAPPY, EmotionType.EXCITED, EmotionType.FOCUSED]:
-            return "You're in a great state! Perfect time for challenging or creative work."
+        if len(recent_states) >= 3:
+            # Escalation pattern
+            arousal_trend = [s.arousal for s in recent_states[-3:]]
+            if all(arousal_trend[i] < arousal_trend[i+1] for i in range(2)):
+                patterns.append("escalating_arousal")
+                
+            # Mood swing pattern
+            valence_values = [s.valence for s in recent_states[-5:]]
+            if max(valence_values) - min(valence_values) > 1.2:
+                patterns.append("mood_swings")
+                
+            # Stuck pattern (low variation)
+            if all(abs(s.valence - state.valence) < 0.2 for s in recent_states[-5:]):
+                if state.valence < -0.3:
+                    patterns.append("stuck_negative")
+                elif state.valence > 0.3:
+                    patterns.append("stable_positive")
+                    
+        # Context-based patterns
+        if context:
+            time_of_day = datetime.now().hour
+            if time_of_day >= 22 or time_of_day <= 6:
+                if state.arousal > 0.5:
+                    patterns.append("late_night_activation")
+                    
+            # Work hours stress
+            if 9 <= time_of_day <= 17 and state.valence < -0.3:
+                patterns.append("work_hours_stress")
+                
+        return patterns
+        
+    def _calculate_trajectory(self, current_state: EmotionalState) -> Dict:
+        """Calculate emotional trajectory and predictions"""
+        if len(self.emotional_history) < 2:
+            return {"direction": "stable", "velocity": 0.0, "prediction": "maintaining"}
+            
+        recent = list(self.emotional_history)[-5:]
+        
+        # Calculate derivatives
+        valence_delta = current_state.valence - recent[-1].state.valence
+        arousal_delta = current_state.arousal - recent[-1].state.arousal
+        
+        # Velocity of change
+        velocity = math.sqrt(valence_delta**2 + arousal_delta**2)
+        
+        # Direction
+        if velocity < 0.1:
+            direction = "stable"
+        elif valence_delta > 0.2:
+            direction = "improving"
+        elif valence_delta < -0.2:
+            direction = "declining"
+        elif arousal_delta > 0.3:
+            direction = "activating"
         else:
-            return "Emotional state is balanced. Maintain regular breaks and stay hydrated."
-    
-    async def check_intervention_needed(self, state: EmotionalState, context: UserContext) -> Optional[str]:
-        """Check if JARVIS should intervene with a suggestion"""
-        
-        # High stress/frustration
-        if state.intensity > self.intervention_threshold:
-            if state.primary_emotion in [EmotionType.STRESSED, EmotionType.FRUSTRATED]:
-                return f"I notice you're quite {state.primary_emotion.value}. Would you like me to help with a quick break activity?"
-        
-        # Long work session
-        if context.needs_break and state.primary_emotion != EmotionType.FOCUSED:
-            return "You've been working for a while. How about a quick break? I can set a timer."
-        
-        # Late night fatigue
-        if context.is_late_night and state.primary_emotion == EmotionType.TIRED:
-            return "It's getting late and you seem tired. Should we plan to wrap up soon?"
-        
-        # Extended negative emotion
-        if state.duration_minutes > 30 and state.primary_emotion in [EmotionType.SAD, EmotionType.ANXIOUS]:
-            return "You've been feeling this way for a while. Want to talk about it or try something different?"
-        
-        return None
-    
-    def get_family_aware_response(self, emotion: EmotionType) -> str:
-        """Get a family-aware response based on emotion"""
-        family_responses = {
-            EmotionType.HAPPY: "That's wonderful! Your family would be proud of you.",
-            EmotionType.STRESSED: "Remember, your family is here for you. Maybe take a break and spend some time with them?",
-            EmotionType.SAD: "I'm here for you. Would you like to talk to your family? Sometimes that helps.",
-            EmotionType.TIRED: "You've been working hard. Your family would want you to rest.",
-            EmotionType.EXCITED: "Your excitement is contagious! This would be great to share with your family."
+            direction = "calming"
+            
+        # Prediction based on trajectory
+        if direction == "declining" and velocity > 0.3:
+            prediction = "needs_intervention"
+        elif direction == "improving":
+            prediction = "positive_momentum"
+        elif direction == "stable" and current_state.valence < -0.5:
+            prediction = "stuck_negative"
+        else:
+            prediction = "maintaining"
+            
+        return {
+            "direction": direction,
+            "velocity": velocity,
+            "prediction": prediction,
+            "target_distance": current_state.distance_to(self.target_state)
         }
         
-        return family_responses.get(emotion, "Remember, I'm here to help you, just like family.")
-
-
-# Global emotional intelligence instance
-emotional_intelligence = PersonalEmotionalIntelligence()
-
-
-# Convenience functions for JARVIS integration
-async def analyze_user_emotion(text: str = None, context: Dict[str, Any] = None) -> EmotionalState:
-    """Analyze user's emotional state"""
-    
-    # Convert dict context to UserContext if needed
-    if context and not isinstance(context, UserContext):
-        user_context = UserContext(
-            time_of_day=context.get('time_of_day', datetime.now().hour),
-            work_duration_hours=context.get('work_duration_hours', 0),
-            last_break_minutes_ago=context.get('last_break_minutes_ago', 0),
-            calendar_next=context.get('calendar_next'),
-            recent_activities=context.get('recent_activities', []),
-            location=context.get('location', 'home')
+    def _generate_empathetic_understanding(self, 
+                                         state: EmotionalState,
+                                         text: str,
+                                         context: Dict) -> Dict:
+        """Generate deep empathetic understanding"""
+        understanding = {
+            "primary_emotion": self._identify_primary_emotion(state),
+            "underlying_needs": self._identify_needs(state, text, context),
+            "validation": self._generate_validation(state, text),
+            "perspective": self._generate_perspective(state, context)
+        }
+        
+        return understanding
+        
+    def _identify_primary_emotion(self, state: EmotionalState) -> str:
+        """Identify the primary emotion from the emotional state"""
+        emotions = {
+            "excited_happy": ["joy", "excitement", "enthusiasm"],
+            "calm_happy": ["contentment", "peace", "satisfaction"],
+            "excited_unhappy": ["anger", "frustration", "anxiety"],
+            "calm_unhappy": ["sadness", "disappointment", "loneliness"]
+        }
+        
+        quadrant_emotions = emotions.get(state.quadrant, ["neutral"])
+        
+        # Refine based on specific values
+        if state.quadrant == "excited_unhappy":
+            if state.dominance > 0.5:
+                return "anger"
+            else:
+                return "anxiety"
+        elif state.quadrant == "calm_unhappy":
+            if state.dominance < -0.3:
+                return "helplessness"
+            else:
+                return "sadness"
+                
+        return quadrant_emotions[0]
+        
+    def _identify_needs(self, state: EmotionalState, text: str, context: Dict) -> List[str]:
+        """Identify underlying emotional needs"""
+        needs = []
+        
+        # Based on emotional state
+        if state.valence < -0.3:
+            needs.append("support")
+            if state.arousal > 0.3:
+                needs.append("resolution")
+            else:
+                needs.append("comfort")
+                
+        if state.arousal > 0.5:
+            needs.append("grounding")
+            
+        if state.dominance < -0.5:
+            needs.append("empowerment")
+            
+        # Based on text content
+        text_lower = text.lower()
+        if "help" in text_lower:
+            needs.append("assistance")
+        if "listen" in text_lower or "hear" in text_lower:
+            needs.append("validation")
+        if "alone" in text_lower or "nobody" in text_lower:
+            needs.append("connection")
+            
+        return list(set(needs))  # Remove duplicates
+        
+    def _generate_validation(self, state: EmotionalState, text: str) -> str:
+        """Generate appropriate validation statement"""
+        emotion = self._identify_primary_emotion(state)
+        
+        # Extract situation from text (simplified)
+        situation = "this situation"
+        if "work" in text.lower():
+            situation = "your work situation"
+        elif "family" in text.lower():
+            situation = "your family situation"
+            
+        template = np.random.choice(self.empathy_model["validation_templates"])
+        return template.format(emotion=emotion, situation=situation, context=situation)
+        
+    def _generate_perspective(self, state: EmotionalState, context: Dict) -> str:
+        """Generate perspective-taking statement"""
+        if state.quadrant == "excited_unhappy":
+            return "This seems really frustrating and urgent for you"
+        elif state.quadrant == "calm_unhappy":
+            return "This has been weighing on you for a while"
+        elif state.quadrant == "excited_happy":
+            return "You have wonderful energy about this"
+        else:
+            return "You seem at peace with where things are"
+            
+    def _recommend_response_strategy(self, state: EmotionalState, trajectory: Dict) -> Dict:
+        """Recommend response strategy based on emotional analysis"""
+        strategy = self.response_strategies.get(state.quadrant, {})
+        
+        # Adjust based on trajectory
+        if trajectory["prediction"] == "needs_intervention":
+            strategy["urgency"] = "high"
+            strategy["primary_action"] = "stabilize"
+        elif trajectory["prediction"] == "positive_momentum":
+            strategy["primary_action"] = "reinforce"
+            
+        # Add specific recommendations
+        recommendations = {
+            "tone": strategy.get("tone_adjustment", {}),
+            "actions": strategy.get("actions", []),
+            "phrases": strategy.get("phrases", []),
+            "approach": self._determine_approach(state, trajectory),
+            "intensity": self._calculate_response_intensity(state, trajectory)
+        }
+        
+        return recommendations
+        
+    def _determine_approach(self, state: EmotionalState, trajectory: Dict) -> str:
+        """Determine the best approach for response"""
+        if state.valence < -0.5 and trajectory["velocity"] > 0.5:
+            return "crisis_support"
+        elif state.valence < -0.3:
+            return "gentle_support"
+        elif state.valence > 0.3 and state.arousal > 0.3:
+            return "enthusiastic_engagement"
+        elif trajectory["direction"] == "stable":
+            return "maintain_connection"
+        else:
+            return "adaptive_guidance"
+            
+    def _calculate_response_intensity(self, state: EmotionalState, trajectory: Dict) -> float:
+        """Calculate appropriate response intensity (0-1)"""
+        # Higher intensity for extreme states
+        intensity = abs(state.valence) * 0.3 + abs(state.arousal) * 0.3
+        
+        # Adjust for trajectory
+        if trajectory["velocity"] > 0.5:
+            intensity += 0.2
+            
+        # Cap at reasonable levels
+        return min(1.0, intensity)
+        
+    def _update_emotional_state(self, state: EmotionalState, context: Dict):
+        """Update internal emotional tracking"""
+        memory = EmotionalMemory(
+            state=state,
+            timestamp=datetime.now(),
+            context=context or {},
+            triggers=[],  # Would be filled based on analysis
+            response_effectiveness=0.5  # Would be updated based on feedback
         )
-    else:
-        user_context = context
-    
-    return await emotional_intelligence.analyze_emotion(text, user_context)
-
-
-def get_emotional_support(emotion: EmotionType) -> str:
-    """Get emotional support message"""
-    return emotional_intelligence.get_family_aware_response(emotion)
+        
+        self.emotional_history.append(memory)
+        self.current_state = state
+        
+        # Learn patterns
+        if len(self.emotional_history) > 10:
+            self._learn_emotional_patterns()
+            
+    def _learn_emotional_patterns(self):
+        """Learn from emotional patterns over time"""
+        # Simplified pattern learning
+        recent = list(self.emotional_history)[-20:]
+        
+        # Identify recurring triggers
+        trigger_counts = {}
+        for memory in recent:
+            for trigger in memory.triggers:
+                trigger_counts[trigger] = trigger_counts.get(trigger, 0) + 1
+                
+        # Store significant patterns
+        for trigger, count in trigger_counts.items():
+            if count > 3:
+                self.pattern_memory.append({
+                    "pattern": trigger,
+                    "frequency": count,
+                    "typical_response": self._get_typical_response(trigger, recent)
+                })
+                
+    def _get_typical_response(self, trigger: str, memories: List[EmotionalMemory]) -> str:
+        """Get typical emotional response to a trigger"""
+        states = [m.state for m in memories if trigger in m.triggers]
+        if not states:
+            return "neutral"
+            
+        avg_valence = sum(s.valence for s in states) / len(states)
+        avg_arousal = sum(s.arousal for s in states) / len(states)
+        
+        if avg_valence < -0.3:
+            return "negative"
+        elif avg_valence > 0.3:
+            return "positive"
+        else:
+            return "neutral"
+            
+    def generate_emotionally_aware_response(self, 
+                                          base_response: str,
+                                          emotional_analysis: Dict) -> str:
+        """Enhance response with emotional awareness"""
+        strategy = emotional_analysis["recommended_response"]
+        
+        # Apply tone adjustments
+        response = self._apply_tone_adjustments(base_response, strategy["tone"])
+        
+        # Add empathetic elements
+        if emotional_analysis["understanding"]["underlying_needs"]:
+            needs = emotional_analysis["understanding"]["underlying_needs"]
+            if "support" in needs:
+                response = emotional_analysis["understanding"]["validation"] + " " + response
+                
+        # Add appropriate closure
+        approach = strategy["approach"]
+        if approach == "crisis_support":
+            response += " I'm here with you through this."
+        elif approach == "gentle_support":
+            response += " Take your time."
+        elif approach == "enthusiastic_engagement":
+            response += " Let's make this happen!"
+            
+        return response
+        
+    def _apply_tone_adjustments(self, text: str, tone_adjustments: Dict) -> str:
+        """Apply tone adjustments to text"""
+        # This would ideally modify the actual language
+        # For now, we'll just note the adjustments
+        if tone_adjustments.get("warmth", 1.0) > 1.2:
+            # Add warmer language
+            text = text.replace("Okay", "Of course")
+            text = text.replace("I'll", "I'd be happy to")
+            
+        if tone_adjustments.get("energy", 1.0) > 1.2:
+            # Add more energetic language
+            if not text.endswith("!"):
+                text += "!"
+                
+        return text
+        
+    def get_emotional_summary(self) -> Dict:
+        """Get summary of emotional patterns and state"""
+        if not self.emotional_history:
+            return {"status": "no_data"}
+            
+        recent = list(self.emotional_history)[-20:]
+        
+        return {
+            "current_state": {
+                "primary_emotion": self._identify_primary_emotion(self.current_state),
+                "quadrant": self.current_state.quadrant,
+                "intensity": abs(self.current_state.valence) + abs(self.current_state.arousal)
+            },
+            "patterns": {
+                "average_valence": sum(m.state.valence for m in recent) / len(recent),
+                "average_arousal": sum(m.state.arousal for m in recent) / len(recent),
+                "volatility": np.std([m.state.valence for m in recent]),
+                "dominant_quadrant": max(
+                    set(m.state.quadrant for m in recent),
+                    key=lambda x: sum(1 for m in recent if m.state.quadrant == x)
+                )
+            },
+            "trajectory": self._calculate_trajectory(self.current_state),
+            "recommendations": {
+                "interaction_style": self._recommend_interaction_style(),
+                "topics_to_avoid": self._identify_sensitive_topics(),
+                "supportive_actions": self._recommend_supportive_actions()
+            }
+        }
+        
+    def _recommend_interaction_style(self) -> str:
+        """Recommend interaction style based on patterns"""
+        if self.current_state.valence < -0.5:
+            return "gentle_supportive"
+        elif self.current_state.arousal > 0.7:
+            return "calm_grounding"
+        elif self.current_state.valence > 0.5:
+            return "enthusiastic_collaborative"
+        else:
+            return "balanced_responsive"
+            
+    def _identify_sensitive_topics(self) -> List[str]:
+        """Identify topics to approach carefully"""
+        sensitive = []
+        
+        # Check pattern memory for negative associations
+        for pattern in self.pattern_memory:
+            if pattern.get("typical_response") == "negative":
+                sensitive.append(pattern["pattern"])
+                
+        return sensitive
+        
+    def _recommend_supportive_actions(self) -> List[str]:
+        """Recommend supportive actions based on state"""
+        actions = []
+        
+        if self.current_state.arousal > 0.7:
+            actions.append("suggest_breathing_exercise")
+            actions.append("offer_break")
+            
+        if self.current_state.valence < -0.3:
+            actions.append("increase_check_ins")
+            actions.append("offer_support_resources")
+            
+        if self._detect_burnout_risk():
+            actions.append("recommend_rest")
+            actions.append("reduce_notifications")
+            
+        return actions
+        
+    def _detect_burnout_risk(self) -> bool:
+        """Detect risk of emotional burnout"""
+        if len(self.emotional_history) < 50:
+            return False
+            
+        recent = list(self.emotional_history)[-50:]
+        
+        # Check for prolonged negative state
+        negative_count = sum(1 for m in recent if m.state.valence < -0.3)
+        high_arousal_count = sum(1 for m in recent if m.state.arousal > 0.6)
+        
+        return negative_count > 30 or high_arousal_count > 35

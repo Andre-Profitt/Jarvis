@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Interactive Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #5E5CE6;
+            --primary-hover: #4A4AE4;
+            --text-primary: #1A1A1A;
+            --text-secondary: #6E6E73;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F5F5F7;
+            --border: #E5E5E7;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            height: 56px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+        }
+        
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+        
+        .status {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+        }
+        
+        .chat-inner {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        
+        .message {
+            margin-bottom: 24px;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .user-avatar { background: var(--primary); color: white; }
+        .jarvis-avatar { background: var(--bg-secondary); }
+        
+        .message-content {
+            margin-left: 44px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        
+        .input-container {
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border);
+            padding: 20px 40px;
+        }
+        
+        .input-wrapper {
+            max-width: 720px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .input-field {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px 60px 16px 20px;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+        
+        .input-field:focus {
+            border-color: var(--primary);
+            background: var(--bg-primary);
+        }
+        
+        .voice-button {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .voice-button:hover {
+            background: var(--primary-hover);
+        }
+        
+        .voice-button.recording {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(94, 92, 230, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(94, 92, 230, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(94, 92, 230, 0); }
+        }
+        
+        .quick-actions {
+            max-width: 720px;
+            margin: 0 auto 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-action {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .quick-action:hover {
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">JARVIS</div>
+        <div class="status">Interactive Demo - Click actions below</div>
+    </div>
+    
+    <div class="chat-container" id="chat-container">
+        <div class="chat-inner" id="chat-messages">
+            <div class="message">
+                <div class="message-header">
+                    <div class="message-avatar jarvis-avatar">J</div>
+                    <div class="message-name">JARVIS</div>
+                </div>
+                <div class="message-content">
+                    Hello! I'm JARVIS, your AI assistant. I can help you open applications, check information, and execute commands. Try clicking the quick actions below or type your own command!
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="input-container">
+        <div class="quick-actions">
+            <button class="quick-action" onclick="sendCommand('Open Safari')">Open Safari</button>
+            <button class="quick-action" onclick="sendCommand('What\'s the weather?')">Check Weather</button>
+            <button class="quick-action" onclick="sendCommand('Open my email')">Open Email</button>
+            <button class="quick-action" onclick="sendCommand('Launch Spotify')">Launch Spotify</button>
+            <button class="quick-action" onclick="sendCommand('What time is it?')">Current Time</button>
+            <button class="quick-action" onclick="sendCommand('Open Calendar')">Open Calendar</button>
+        </div>
+        <div class="input-wrapper">
+            <input 
+                type="text" 
+                class="input-field" 
+                id="message-input" 
+                placeholder="Type a command or click quick actions above..."
+                onkeypress="if(event.key === 'Enter') sendMessage()"
+            >
+            <button class="voice-button" id="voice-button" onclick="toggleVoice()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        let recognition = null;
+        let isRecording = false;
+        
+        // Initialize speech recognition
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('message-input').value = transcript;
+                
+                if (event.results[0].isFinal) {
+                    sendMessage();
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                stopRecording();
+            };
+            
+            recognition.onend = function() {
+                stopRecording();
+            };
+        }
+        
+        function toggleVoice() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+        
+        function startRecording() {
+            if (recognition) {
+                isRecording = true;
+                document.getElementById('voice-button').classList.add('recording');
+                recognition.start();
+            } else {
+                addMessage('jarvis', 'Voice recognition is not supported in your browser. Please try Chrome or Safari.');
+            }
+        }
+        
+        function stopRecording() {
+            isRecording = false;
+            document.getElementById('voice-button').classList.remove('recording');
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            sendCommand(message);
+            input.value = '';
+        }
+        
+        function sendCommand(command) {
+            // Add user message
+            addMessage('user', command);
+            
+            // Process command
+            setTimeout(() => {
+                const response = processCommand(command);
+                addMessage('jarvis', response);
+            }, 500);
+        }
+        
+        function processCommand(command) {
+            const cmd = command.toLowerCase();
+            
+            // System commands that actually work
+            if (cmd.includes('open')) {
+                if (cmd.includes('safari')) {
+                    window.open('https://www.apple.com', '_blank');
+                    return 'Opening Safari browser. In the full system, this would open the actual Safari application on your Mac.';
+                } else if (cmd.includes('email') || cmd.includes('mail')) {
+                    window.open('https://mail.google.com', '_blank');
+                    return 'Opening email. In the full system, this would open your default mail application.';
+                } else if (cmd.includes('spotify') || cmd.includes('music')) {
+                    window.open('https://open.spotify.com', '_blank');
+                    return 'Opening Spotify. In the full system, this would launch the Spotify desktop app.';
+                } else if (cmd.includes('calendar')) {
+                    window.open('https://calendar.google.com', '_blank');
+                    return 'Opening Calendar. In the full system, this would open the Calendar app on your Mac.';
+                }
+            }
+            
+            // Information queries
+            else if (cmd.includes('weather')) {
+                return 'Currently 72°F and partly cloudy. Today\'s high will be 78°F with a 20% chance of rain this afternoon. Tomorrow looks sunny with temperatures in the mid-70s.';
+            }
+            else if (cmd.includes('time')) {
+                const now = new Date();
+                return `The current time is ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+            }
+            else if (cmd.includes('date')) {
+                const now = new Date();
+                return `Today is ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+            }
+            
+            // Calculations
+            else if (cmd.includes('calculate') || cmd.includes('what is')) {
+                if (cmd.includes('15%') && cmd.includes('tip')) {
+                    return 'A 15% tip on $120 would be $18. The total would be $138.';
+                }
+                return 'I can help with calculations. In the full system, I process complex math using advanced computational methods.';
+            }
+            
+            // Help
+            else if (cmd.includes('help') || cmd.includes('what can you do')) {
+                return `I can help you with:
+• Opening applications (Safari, Email, Spotify, Calendar)
+• Checking weather and time
+• Calculations and conversions
+• Setting reminders and managing tasks
+• Writing code and documents
+• And much more! Just ask naturally.`;
+            }
+            
+            // Default response
+            else {
+                return `I understand you want to: "${command}". In the full JARVIS system, I would process this using GPT-4, Gemini, and Claude to provide the most helpful response. The system includes natural language understanding, task automation, and learning capabilities.`;
+            }
+        }
+        
+        function addMessage(sender, text) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="message-avatar ${sender}-avatar">${sender === 'user' ? 'U' : 'J'}</div>
+                    <div class="message-name">${sender === 'user' ? 'You' : 'JARVIS'}</div>
+                </div>
+                <div class="message-content">${text}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;
+        }
+    </script>
+</body>
+</html>

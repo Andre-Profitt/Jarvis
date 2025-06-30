@@ -16,67 +16,68 @@ from core.llm_research_quickstart import (
     deep_research,
     compare_topics,
     generate_hypotheses,
-    research_tool
+    research_tool,
 )
 
 
 async def main():
     """Run research demos"""
-    
-    print("""
+
+    print(
+        """
     ╔══════════════════════════════════════════════════╗
     ║     🔬 JARVIS LLM Research Demo 🔬               ║
     ║  Advanced Research with Claude & Gemini CLI      ║
     ╚══════════════════════════════════════════════════╝
-    """)
-    
-    # Demo 1: Quick Research
-    print("\n" + "="*60)
-    print("DEMO 1: Quick Research on Quantum Computing")
-    print("="*60)
-    
-    quantum_result = await quick_research("Latest quantum computing breakthroughs 2024")
-    
-    # Demo 2: Deep Research
-    print("\n" + "="*60)
-    print("DEMO 2: Deep Research on AI Safety")
-    print("="*60)
-    
-    safety_result = await deep_research("AI alignment and safety measures")
-    
-    # Demo 3: Comparative Analysis
-    print("\n" + "="*60)
-    print("DEMO 3: Comparing ML Architectures")
-    print("="*60)
-    
-    comparison = await compare_topics(
-        "Transformer models",
-        "Graph Neural Networks",
-        "Diffusion models"
+    """
     )
-    
+
+    # Demo 1: Quick Research
+    print("\n" + "=" * 60)
+    print("DEMO 1: Quick Research on Quantum Computing")
+    print("=" * 60)
+
+    quantum_result = await quick_research("Latest quantum computing breakthroughs 2024")
+
+    # Demo 2: Deep Research
+    print("\n" + "=" * 60)
+    print("DEMO 2: Deep Research on AI Safety")
+    print("=" * 60)
+
+    safety_result = await deep_research("AI alignment and safety measures")
+
+    # Demo 3: Comparative Analysis
+    print("\n" + "=" * 60)
+    print("DEMO 3: Comparing ML Architectures")
+    print("=" * 60)
+
+    comparison = await compare_topics(
+        "Transformer models", "Graph Neural Networks", "Diffusion models"
+    )
+
     # Demo 4: Hypothesis Generation
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO 4: Generating Research Hypotheses")
-    print("="*60)
-    
+    print("=" * 60)
+
     hypotheses = await generate_hypotheses("Neuromorphic computing applications")
-    
+
     # Demo 5: Tool Research
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO 5: Research for Tool Creation")
-    print("="*60)
-    
+    print("=" * 60)
+
     tool_research_result = await research_tool(
         "SmartCodeOptimizer",
-        "Automatically optimize Python code for performance and readability"
+        "Automatically optimize Python code for performance and readability",
     )
-    
+
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("✅ Demo Complete!")
-    print("="*60)
-    print("""
+    print("=" * 60)
+    print(
+        """
     The LLM Research system can:
     
     1. 🔍 Conduct quick or deep research on any topic
@@ -89,7 +90,8 @@ async def main():
     8. 🧠 Integrate with neural resource allocation
     
     All research is stored in JARVIS's knowledge base for future use!
-    """)
+    """
+    )
 
 
 if __name__ == "__main__":

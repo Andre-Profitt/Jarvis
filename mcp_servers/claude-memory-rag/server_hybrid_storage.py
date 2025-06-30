@@ -1,0 +1,478 @@
+#!/usr/bin/env python3
+"""
+Claude Memory RAG - Hybrid Storage (Local + GCS when available)
+Automatically uses Google Cloud Storage when billing is enabled
+"""
+
+import asyncio
+import json
+import os
+import sys
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+from pathlib import Path
+import numpy as np
+
+# Set up GCS credentials
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(
+    Path.home() / ".gcs/jarvis-credentials.json"
+)
+
+# Test GCS availability
+GCS_CLIENT = None
+GCS_BUCKET = None
+GCS_STATUS = "Not initialized"
+
+
+def init_gcs():
+    """Initialize GCS if available"""
+    global GCS_CLIENT, GCS_BUCKET, GCS_STATUS
+
+    try:
+        from google.cloud import storage
+
+        GCS_CLIENT = storage.Client()
+
+        # Try to access/create bucket
+        bucket_name = "jarvis-memory-storage"
+        try:
+            GCS_BUCKET = GCS_CLIENT.get_bucket(bucket_name)
+            GCS_STATUS = f"Connected to {bucket_name}"
+            print(f"✅ Connected to GCS bucket: {bucket_name}", file=sys.stderr)
+            return True
+        except Exception as e:
+            if "billing" in str(e).lower():
+                GCS_STATUS = "Billing not enabled"
+                print(
+                    "⚠️  GCS billing not enabled - using local storage", file=sys.stderr
+                )
+            else:
+                GCS_STATUS = f"Error: {str(e)[:50]}..."
+                print(f"⚠️  GCS error: {e}", file=sys.stderr)
+            return False
+    except ImportError:
+        GCS_STATUS = "Module not installed"
+        print("⚠️  google-cloud-storage not installed", file=sys.stderr)
+        return False
+    except Exception as e:
+        GCS_STATUS = f"Error: {str(e)[:50]}..."
+        print(f"⚠️  GCS initialization error: {e}", file=sys.stderr)
+        return False
+
+
+# Initialize on import
+HAS_GCS = init_gcs()
+
+
+# Simple embeddings (same as before)
+class SimpleEmbeddings:
+    def __init__(self, dim=384):
+        self.dim = dim
+
+    def embed_documents(self, texts):
+        return [self.embed_query(text) for text in texts]
+
+    def embed_query(self, text):
+        words = text.lower().split()[:50]
+        vec = np.zeros(self.dim)
+        for i, word in enumerate(words):
+            idx = hash(word) % self.dim
+            vec[idx] += 1.0 / (i + 1)
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = vec / norm
+        return vec.tolist()
+
+
+class SimpleVectorStore:
+    """Simple in-memory vector store"""
+
+    def __init__(self):
+        self.documents = []
+        self.embeddings = []
+        self.metadatas = []
+        self.embedder = SimpleEmbeddings()
+
+    def add_texts(self, texts, metadatas=None):
+        for i, text in enumerate(texts):
+            self.documents.append(text)
+            self.embeddings.append(self.embedder.embed_query(text))
+            self.metadatas.append(metadatas[i] if metadatas else {})
+
+    def similarity_search(self, query, k=5):
+        if not self.documents:
+            return []
+
+        query_embedding = np.array(self.embedder.embed_query(query))
+        similarities = []
+
+        for i, emb in enumerate(self.embeddings):
+            similarity = np.dot(query_embedding, np.array(emb))
+            similarities.append((i, similarity))
+
+        similarities.sort(key=lambda x: x[1], reverse=True)
+
+        results = []
+        for i, score in similarities[:k]:
+            results.append(
+                {
+                    "content": self.documents[i],
+                    "metadata": self.metadatas[i],
+                    "score": score,
+                }
+            )
+
+        return results
+
+
+class HybridMemoryRAG:
+    """Memory system with automatic GCS backup when available"""
+
+    def __init__(self):
+        # Local storage (always available)
+        self.local_dir = Path.home() / ".claude_simple_memory"
+        self.local_dir.mkdir(exist_ok=True)
+
+        # Vector store
+        self.vector_store = SimpleVectorStore()
+
+        # Memory storage
+        self.conversations = {}
+        self.patterns = {}
+
+        # Load existing data
+        self._load_memory()
+
+        # Try to sync with GCS if available
+        if HAS_GCS:
+            self._sync_from_gcs()
+
+    def _load_memory(self):
+        """Load memory from local disk"""
+        memory_file = self.local_dir / "memory.json"
+        if memory_file.exists():
+            with open(memory_file, "r") as f:
+                data = json.load(f)
+                self.conversations = data.get("conversations", {})
+                self.patterns = data.get("patterns", {})
+
+                # Rebuild vector store
+                for conv_id, conv in self.conversations.items():
+                    text = " ".join(
+                        [m.get("content", "") for m in conv.get("messages", [])]
+                    )
+                    self.vector_store.add_texts([text], [{"id": conv_id}])
+
+    def _save_memory(self):
+        """Save memory to local disk"""
+        memory_file = self.local_dir / "memory.json"
+        with open(memory_file, "w") as f:
+            json.dump(
+                {"conversations": self.conversations, "patterns": self.patterns},
+                f,
+                indent=2,
+            )
+
+    def _sync_from_gcs(self):
+        """Sync data from GCS if available"""
+        if not HAS_GCS or not GCS_BUCKET:
+            return
+
+        try:
+            # Download conversations from GCS
+            prefix = "conversations/"
+            blobs = GCS_BUCKET.list_blobs(prefix=prefix)
+
+            synced = 0
+            for blob in blobs:
+                if blob.name.endswith(".json"):
+                    conv_id = blob.name.replace(prefix, "").replace(".json", "")
+                    if conv_id not in self.conversations:
+                        content = blob.download_as_text()
+                        self.conversations[conv_id] = json.loads(content)
+                        synced += 1
+
+            if synced > 0:
+                print(f"✅ Synced {synced} conversations from GCS", file=sys.stderr)
+                self._save_memory()  # Save to local
+
+        except Exception as e:
+            print(f"⚠️  GCS sync error: {e}", file=sys.stderr)
+
+    async def store_conversation(self, conv_id, messages, metadata=None):
+        """Store conversation locally and to GCS if available"""
+        # Store locally
+        self.conversations[conv_id] = {
+            "messages": messages,
+            "metadata": metadata or {},
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        # Add to vector store
+        text = " ".join([m.get("content", "") for m in messages])
+        self.vector_store.add_texts([text], [{"id": conv_id, **(metadata or {})}])
+
+        # Save locally
+        self._save_memory()
+
+        # Try to backup to GCS
+        if HAS_GCS and GCS_BUCKET:
+            try:
+                blob = GCS_BUCKET.blob(f"conversations/{conv_id}.json")
+                blob.upload_from_string(json.dumps(self.conversations[conv_id]))
+                print(f"☁️  Backed up to GCS: {conv_id}", file=sys.stderr)
+            except Exception as e:
+                print(f"⚠️  GCS backup failed: {e}", file=sys.stderr)
+                # Continue - local storage is working
+
+        return True
+
+    async def recall_memories(self, query, top_k=5):
+        """Search memories using vector similarity"""
+        results = self.vector_store.similarity_search(query, k=top_k)
+
+        memories = []
+        for result in results:
+            conv_id = result["metadata"].get("id")
+            if conv_id in self.conversations:
+                memories.append(
+                    {
+                        "conversation": self.conversations[conv_id],
+                        "relevance": result["score"],
+                        "metadata": result["metadata"],
+                    }
+                )
+
+        return memories
+
+    async def learn_pattern(self, pattern, success, context=None):
+        """Store a learned pattern"""
+        pattern_id = f"pattern_{datetime.now().timestamp()}"
+        self.patterns[pattern_id] = {
+            "pattern": pattern,
+            "success": success,
+            "context": context or {},
+            "timestamp": datetime.now().isoformat(),
+        }
+        self._save_memory()
+
+        # Try GCS backup
+        if HAS_GCS and GCS_BUCKET:
+            try:
+                blob = GCS_BUCKET.blob(f"patterns/{pattern_id}.json")
+                blob.upload_from_string(json.dumps(self.patterns[pattern_id]))
+            except:
+                pass  # Local storage is sufficient
+
+    def get_stats(self):
+        """Get memory statistics"""
+        stats = {
+            "total_conversations": len(self.conversations),
+            "total_patterns": len(self.patterns),
+            "vector_store_size": len(self.vector_store.documents),
+            "storage": "Local + GCS (30TB)" if HAS_GCS else "Local only",
+            "gcs_status": GCS_STATUS,
+        }
+
+        # Add storage size estimate
+        local_size = sum(len(json.dumps(c)) for c in self.conversations.values())
+        stats["local_storage_bytes"] = local_size
+        stats["local_storage_mb"] = round(local_size / 1024 / 1024, 2)
+
+        return stats
+
+
+class HybridMCPServer:
+    """MCP server with hybrid storage"""
+
+    def __init__(self):
+        self.rag = HybridMemoryRAG()
+        self.start_time = datetime.now()
+
+    async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle MCP protocol requests"""
+        request_id = request.get("id")
+        method = request.get("method")
+        params = request.get("params", {})
+
+        response = {"jsonrpc": "2.0", "id": request_id}
+
+        try:
+            if method == "initialize":
+                response["result"] = {
+                    "capabilities": {"tools": {"listChanged": True}},
+                    "serverInfo": {"name": "claude-memory-hybrid", "version": "2.0.0"},
+                }
+
+            elif method == "tools/list":
+                response["result"] = {
+                    "tools": [
+                        {
+                            "name": "store_conversation",
+                            "description": "Store conversation (local + GCS backup when available)",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "conversation_id": {"type": "string"},
+                                    "messages": {"type": "array"},
+                                    "metadata": {"type": "object"},
+                                },
+                                "required": ["conversation_id", "messages"],
+                            },
+                        },
+                        {
+                            "name": "recall_memories",
+                            "description": "Search memories using vector similarity",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {"type": "string"},
+                                    "top_k": {"type": "integer", "default": 5},
+                                },
+                                "required": ["query"],
+                            },
+                        },
+                        {
+                            "name": "get_memory_stats",
+                            "description": "Get memory statistics and storage status",
+                            "inputSchema": {"type": "object", "properties": {}},
+                        },
+                        {
+                            "name": "learn_pattern",
+                            "description": "Store a learned pattern",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "pattern": {"type": "string"},
+                                    "success": {"type": "boolean"},
+                                    "context": {"type": "object"},
+                                },
+                                "required": ["pattern", "success"],
+                            },
+                        },
+                    ]
+                }
+
+            elif method == "tools/call":
+                tool_name = params.get("name")
+                tool_params = params.get("arguments", {})
+
+                if tool_name == "store_conversation":
+                    success = await self.rag.store_conversation(
+                        tool_params.get(
+                            "conversation_id", f"conv_{datetime.now().timestamp()}"
+                        ),
+                        tool_params.get("messages", []),
+                        tool_params.get("metadata"),
+                    )
+                    stats = self.rag.get_stats()
+                    response["result"] = {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": f"✅ Conversation stored\nStorage: {stats['storage']}\nGCS Status: {stats['gcs_status']}",
+                            }
+                        ]
+                    }
+
+                elif tool_name == "recall_memories":
+                    memories = await self.rag.recall_memories(
+                        tool_params.get("query", ""), tool_params.get("top_k", 5)
+                    )
+
+                    if not memories:
+                        response["result"] = {
+                            "content": [
+                                {"type": "text", "text": "No relevant memories found."}
+                            ]
+                        }
+                    else:
+                        memory_texts = []
+                        for i, mem in enumerate(memories):
+                            conv = mem["conversation"]
+                            memory_texts.append(
+                                f"Memory {i+1} (relevance: {mem['relevance']:.2f}):\n"
+                                f"  Timestamp: {conv.get('timestamp', 'Unknown')}\n"
+                                f"  Messages: {len(conv.get('messages', []))}\n"
+                                f"  Preview: {conv.get('messages', [{}])[0].get('content', 'No content')[:100]}..."
+                            )
+
+                        response["result"] = {
+                            "content": [
+                                {"type": "text", "text": "\n\n".join(memory_texts)}
+                            ]
+                        }
+
+                elif tool_name == "get_memory_stats":
+                    stats = self.rag.get_stats()
+                    stats["uptime"] = str(datetime.now() - self.start_time)
+                    response["result"] = {
+                        "content": [
+                            {"type": "text", "text": json.dumps(stats, indent=2)}
+                        ]
+                    }
+
+                elif tool_name == "learn_pattern":
+                    await self.rag.learn_pattern(
+                        tool_params.get("pattern"),
+                        tool_params.get("success", True),
+                        tool_params.get("context"),
+                    )
+                    response["result"] = {
+                        "content": [
+                            {"type": "text", "text": "Pattern learned successfully"}
+                        ]
+                    }
+
+                else:
+                    response["error"] = {
+                        "code": -32601,
+                        "message": f"Unknown tool: {tool_name}",
+                    }
+
+            else:
+                response["error"] = {
+                    "code": -32601,
+                    "message": f"Method not found: {method}",
+                }
+
+        except Exception as e:
+            response["error"] = {"code": -32603, "message": f"Internal error: {str(e)}"}
+
+        return response
+
+    async def start_server(self):
+        """Start MCP server"""
+        print("🧠 Claude Memory RAG - Hybrid Storage", file=sys.stderr)
+        print(f"📊 Stats: {self.rag.get_stats()}", file=sys.stderr)
+        print("✅ Ready for connections...", file=sys.stderr)
+
+        while True:
+            try:
+                line = await asyncio.get_event_loop().run_in_executor(
+                    None, sys.stdin.readline
+                )
+                if not line:
+                    break
+
+                request = json.loads(line.strip())
+                response = await self.handle_request(request)
+
+                sys.stdout.write(json.dumps(response) + "\n")
+                sys.stdout.flush()
+
+            except json.JSONDecodeError as e:
+                error_response = {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32700, "message": f"Parse error: {str(e)}"},
+                    "id": None,
+                }
+                sys.stdout.write(json.dumps(error_response) + "\n")
+                sys.stdout.flush()
+            except Exception as e:
+                print(f"Server error: {e}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    server = HybridMCPServer()
+    asyncio.run(server.start_server())

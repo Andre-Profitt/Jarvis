@@ -1,0 +1,19 @@
+# Claude Memory RAG Requirements - Updated for compatibility
+
+# Vector database
+chromadb>=0.4.0
+
+# Embeddings - using latest compatible version
+sentence-transformers>=2.0.0
+
+# Google Cloud Storage
+google-cloud-storage>=2.10.0
+
+# Core dependencies
+numpy>=1.21.0
+torch>=2.0.0
+transformers>=4.30.0
+
+# Optional but recommended
+tqdm
+pandas

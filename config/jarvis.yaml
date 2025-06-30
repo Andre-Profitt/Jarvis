@@ -1,187 +1,42 @@
-# JARVIS Configuration File
-# =========================
-# This file configures all aspects of the JARVIS system.
-# Environment variables can override any setting using the format:
-# JARVIS_<SECTION>_<SUBSECTION>_<KEY>=value
-
-general:
-  name: JARVIS
-  version: 2.0.0
-  debug: false
-  log_level: INFO  # DEBUG, INFO, WARNING, ERROR
-
-services:
-  # Core WebSocket server for client connections
-  websocket:
+# JARVIS Unified Configuration
+jarvis:
+  name: "JARVIS"
+  version: "1.0.0"
+  mode: "development"  # development, testing, production
+  
+  # AI Configuration
+  ai:
     enabled: true
-    host: 0.0.0.0
-    port: 8765
-    ssl:
-      enabled: false
-      cert_file: null
-      key_file: null
-    
-  # Multi-AI integration (Claude, GPT-4, Gemini)
-  multi_ai:
-    enabled: true
-    models:
-      - claude
-      - gpt4
-      - gemini
-    default_model: claude
+    primary: "claude"  # claude, openai, local
     fallback_enabled: true
-    timeout: 30
     
-  # Voice synthesis with ElevenLabs
-  voice:
-    enabled: true
-    provider: elevenlabs
-    voice_id: default
-    settings:
-      stability: 0.5
-      similarity_boost: 0.75
-      speed: 1.0
-    
-  # Neural resource management
-  neural_resources:
-    enabled: true
-    initial_capacity: 1000
-    max_capacity: 10000
-    optimization:
+    claude:
       enabled: true
-      interval: 300  # seconds
-    
-  # Self-healing system
-  self_healing:
-    enabled: true
-    monitoring_interval: 60  # seconds
-    anomaly_detection:
+      api_key: ${CLAUDE_API_KEY}
+      model: "claude-3-opus-20240229"
+      max_tokens: 4000
+      
+    openai:
       enabled: true
-      sensitivity: 0.8
-    auto_repair:
-      enabled: true
-      max_attempts: 3
+      api_key: ${OPENAI_API_KEY}
+      model: "gpt-4-turbo-preview"
+      max_tokens: 4000
+      
+  # Features (start disabled, enable gradually)
+  features:
+    consciousness: false
+    self_healing: false
+    neural_resource: false
+    quantum_optimization: false
+    emotional_intelligence: false
     
-  # LLM research capabilities
-  llm_research:
-    enabled: true
-    sources:
-      - arxiv
-      - semantic_scholar
-      - crossref
-    cache:
-      enabled: true
-      ttl: 3600  # seconds
+  # System Settings
+  system:
+    max_memory_mb: 4096
+    max_cpu_percent: 80
+    log_level: "INFO"
     
-  # Quantum swarm optimization
-  quantum_swarm:
-    enabled: true
-    n_agents: 50
-    dimensions: 10
-    topology: small_world
-    optimization:
-      max_iterations: 1000
-      convergence_threshold: 0.001
-    
-  # Metacognitive introspection
-  metacognitive:
-    enabled: true
-    reflection_interval: 300  # seconds
-    insight_threshold: 0.7
-    self_improvement:
-      enabled: true
-      learning_rate: 0.01
-    
-  # Consciousness simulation
-  consciousness:
-    enabled: true
-    cycle_frequency: 10  # Hz
-    modules:
-      perception: true
-      attention: true
-      memory: true
-      reasoning: true
-      emotion: true
-    integration_method: global_workspace
-
-features:
-  # Interactive command-line interface
-  interactive_mode: true
-  
-  # Auto-save state periodically
-  auto_save:
-    enabled: true
-    interval: 300  # seconds
-    path: ./state/jarvis_state.json
-  
-  # Telemetry and monitoring
-  telemetry:
-    enabled: false
-    endpoint: null
-    metrics:
-      - performance
-      - errors
-      - usage
-  
-  # API server
-  api_server:
-    enabled: false
-    port: 8080
-    cors:
-      enabled: true
-      origins:
-        - http://localhost:3000
-  
-  # Plugins
-  plugins:
-    enabled: true
-    directory: ./plugins
-    auto_load: true
-
-performance:
-  # Threading and concurrency
-  max_workers: 10
-  async_timeout: 30
-  
-  # Memory management
-  gc_interval: 300  # seconds
-  memory_limit: 4096  # MB
-  
-  # Caching
-  cache:
-    enabled: true
-    backend: memory  # memory, redis
-    ttl: 3600
-
-security:
-  # Authentication
-  auth:
-    enabled: false
-    type: jwt  # jwt, api_key
-    secret_key: null  # Set via JARVIS_SECURITY_AUTH_SECRET_KEY env var
-  
-  # Rate limiting
-  rate_limiting:
-    enabled: true
-    requests_per_minute: 60
-    burst: 10
-  
-  # Encryption
-  encryption:
-    enabled: true
-    algorithm: AES-256-GCM
-
-# Development settings
-development:
-  # Hot reload
-  hot_reload:
-    enabled: false
-    watch_paths:
-      - ./core
-      - ./plugins
-  
-  # Debugging
-  debug:
-    breakpoints: false
-    profiling: false
-    memory_tracking: false
+  # Database
+  database:
+    type: "sqlite"
+    path: "jarvis.db"

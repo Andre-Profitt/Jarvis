@@ -1,0 +1,9 @@
+{
+  "extends": "default",
+  "jarvis": {
+    "mode": "production"
+  },
+  "logging": {
+    "level": "WARNING"
+  }
+}

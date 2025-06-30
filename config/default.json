@@ -1,0 +1,19 @@
+{
+  "jarvis": {
+    "name": "JARVIS",
+    "version": "1.0",
+    "mode": "test"
+  },
+  "logging": {
+    "level": "INFO"
+  },
+  "ai_integration": {
+    "default_model": "gpt-4"
+  },
+  "consciousness": {
+    "cycle_frequency": 10
+  },
+  "neural": {
+    "capacity": 2000
+  }
+}

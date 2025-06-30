@@ -1,0 +1,130 @@
+{
+  "summary": {
+    "total_tests": 12,
+    "passed": 6,
+    "failed": 6,
+    "pass_rate": 50.0,
+    "total_duration": 4.03
+  },
+  "components": {
+    "Pipeline": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        "IntegrationTestResult(component='Pipeline', test_name='Multi-modal Input Processing', passed=False, duration=0.0017328262329101562, error='', metrics={})"
+      ]
+    },
+    "State Management": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        "IntegrationTestResult(component='State Management', test_name='State Transition Flow', passed=False, duration=1.5020370483398438e-05, error='update_state() takes 2 positional arguments but 3 were given', metrics={})"
+      ]
+    },
+    "AI Services": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='AI Services', test_name='Multi-AI Integration', passed=True, duration=2.9014809131622314, error=None, metrics={'services_tested': ['Claude: Skipped (no API key)', 'OpenAI: Active']})"
+      ]
+    },
+    "Neural Resources": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        "IntegrationTestResult(component='Neural Resources', test_name='Resource Allocation', passed=False, duration=1.3113021850585938e-05, error=\"'NeuralResourceManager' object has no attribute 'allocate_resources'\", metrics={})"
+      ]
+    },
+    "Self-Healing": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        "IntegrationTestResult(component='Self-Healing', test_name='Failure Detection & Recovery', passed=False, duration=8.106231689453125e-06, error=\"'SelfHealingSystem' object has no attribute 'report_health'\", metrics={})"
+      ]
+    },
+    "Quantum Swarm": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        "IntegrationTestResult(component='Quantum Swarm', test_name='Optimization Performance', passed=False, duration=0.054023027420043945, error='', metrics={})"
+      ]
+    },
+    "Database": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Database', test_name='Data Persistence', passed=True, duration=0.027818918228149414, error=None, metrics={'records_created': 1})"
+      ]
+    },
+    "Security": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Security', test_name='Token Authentication', passed=True, duration=0.0002989768981933594, error=None, metrics={'token_length': 297})"
+      ]
+    },
+    "Monitoring": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Monitoring', test_name='Metrics Collection', passed=True, duration=8.20159912109375e-05, error=None, metrics={'metrics_collected': 2})"
+      ]
+    },
+    "End-to-End": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        "IntegrationTestResult(component='End-to-End', test_name='Real-world Scenarios', passed=False, duration=0.001260995864868164, error='', metrics={})"
+      ]
+    },
+    "Performance": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Performance', test_name='System Benchmarks', passed=True, duration=1.038386344909668, error=None, metrics={'avg_latency_ms': 0.35, 'p95_latency_ms': 0.44, 'p99_latency_ms': 1.04, 'throughput_rps': 908})"
+      ]
+    },
+    "Resilience": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Resilience', test_name='Failure Recovery', passed=True, duration=0.0011162757873535156, error=None, metrics={'recovery_time_ms': 100})"
+      ]
+    }
+  },
+  "failed_tests": [
+    {
+      "component": "Pipeline",
+      "test": "Multi-modal Input Processing",
+      "error": ""
+    },
+    {
+      "component": "State Management",
+      "test": "State Transition Flow",
+      "error": "update_state() takes 2 positional arguments but 3 were given"
+    },
+    {
+      "component": "Neural Resources",
+      "test": "Resource Allocation",
+      "error": "'NeuralResourceManager' object has no attribute 'allocate_resources'"
+    },
+    {
+      "component": "Self-Healing",
+      "test": "Failure Detection & Recovery",
+      "error": "'SelfHealingSystem' object has no attribute 'report_health'"
+    },
+    {
+      "component": "Quantum Swarm",
+      "test": "Optimization Performance",
+      "error": ""
+    },
+    {
+      "component": "End-to-End",
+      "test": "Real-world Scenarios",
+      "error": ""
+    }
+  ],
+  "performance_metrics": {
+    "avg_test_duration": 0.34
+  }
+}

@@ -1,137 +1,41 @@
-# JARVIS Ecosystem Requirements
-# Install with: pip install -r requirements.txt
+# Core Dependencies
+python-dotenv==1.0.0
+pyyaml==6.0
+aiohttp==3.9.0
+pydantic==2.0.0
+redis==5.0.0
 
-# Core AI/ML Libraries
-torch==2.2.2
-transformers>=4.30.0
-openai>=0.27.0
-anthropic>=0.3.0
-#whisper>=1.0.0
+# AI Integrations
+anthropic==0.15.0
+openai==1.12.0
+google-generativeai==0.3.0
+elevenlabs==0.2.0
 
-# Distributed Computing
-ray>=2.0.0
-dask>=2023.0.0
-prefect>=2.0.0
+# ML/Data Science
+numpy==1.24.0
+pandas==2.0.0
+scikit-learn==1.3.0
+torch==2.1.0
+transformers==4.35.0
 
-# ML Ops
-wandb>=0.15.0
-mlflow>=2.0.0
+# Database
+sqlalchemy==2.0.0
+aiosqlite==0.19.0
 
-# Data & Storage
-numpy>=1.24.0
-pandas>=2.0.0
-redis>=4.5.0
-aioredis>=2.0.0
-chromadb>=0.4.0
-#faiss-cpu>=1.7.4
-google-cloud-storage>=2.10.0
+# Monitoring
+prometheus-client==0.19.0
+psutil==5.9.0
 
-# Web & Networking
-websockets>=11.0
-aiohttp>=3.8.0
-fastapi>=0.100.0
-flask>=2.3.0
-requests>=2.31.0
+# Web/API
+fastapi==0.104.0
+uvicorn==0.24.0
+websockets==12.0
 
-# System & DevOps
-docker>=6.0.0
-kubernetes>=25.0.0
-psutil>=5.9.0
+# Testing
+pytest==7.4.0
+pytest-asyncio==0.21.0
+pytest-cov==4.1.0
 
-# Code Quality
-black>=23.0.0
-autopep8>=2.0.0
-pylint>=2.17.0
-mypy>=1.3.0
-pytest>=7.0.0
-coverage>=7.0.0
-radon>=6.0.0
-
-# Voice & Audio
-SpeechRecognition>=3.10.0
-pyttsx3>=2.90
-pyaudio>=0.2.11
-sounddevice>=0.4.6
-elevenlabs>=0.2.24
-pygame>=2.5.0
-
-# Apple Ecosystem
-# pyicloud>=1.0.0  # Commented out - requires manual setup
-keyring>=23.0.0
-
-# Version Control & CI/CD
-GitPython>=3.1.0
-PyGithub>=1.58
-
-# Utilities
-zeroconf>=0.70.0
-jinja2>=3.1.0
-pyyaml>=6.0
-schedule>=1.2.0
-asyncssh>=2.13.0
-
-# Reinforcement Learning
-#gym>=0.26.0
-stable-baselines3==2.2.1
-
-# Natural Language
-nltk>=3.8.0
-spacy>=3.5.0
-textblob>=0.17.0
-
-# Visualization (for monitoring)
-matplotlib>=3.7.0
-plotly>=5.14.0
-#streamlit>=1.24.0
-
-# Program Synthesis & Security Dependencies
-scikit-learn>=1.3.0
-docker>=6.0.0
-watchdog>=3.0.0
-validators>=0.20.0
-pydantic>=2.0.0
-structlog>=23.0.0
-
-# Monitoring & Observability
-prometheus-client>=0.17.0
-opentelemetry-api>=1.20.0
-opentelemetry-sdk>=1.20.0
-opentelemetry-exporter-otlp>=1.20.0
-opentelemetry-instrumentation-requests>=0.40b0
-
-# Neural Resource Manager Dependencies
-cachetools>=5.3.0
-memory-profiler>=0.61.0
-networkx>=3.1
-
-# Self-Healing System Dependencies
-scikit-learn>=1.3.0
-statsmodels>=0.14.0  # For ARIMA models
-prophet>=1.1.0  # For time series forecasting
-flask>=2.3.0
-flask-cors>=4.0.0
-
-# Multi-Modal Fusion Dependencies
-librosa>=0.10.0
-opencv-python>=4.8.0
-scikit-learn>=1.3.0
-scipy>=1.11.0
-#clip-by-openai>=1.0.0 # Permanently commented out due to torch version conflict
-flask-cors>=4.0.0
-prometheus-client>=0.17.0
-#tensorrt>=8.6.0  # Optional - for GPU optimization
-onnxruntime>=1.15.0  # For model optimization
-#federated-learning>=0.1.0  # For federated learning
-jax>=0.4.0  # For advanced computations
-flax>=0.7.0  # JAX neural network library
-optax>=0.1.0  # JAX optimization library
-einops>=0.6.0  # Tensor operations
-timm>=0.9.0  # Vision models
-
-# Quantum Swarm Optimization Dependencies
-numba>=0.57.0  # JIT compilation for performance
-# cupy-cuda11x>=11.0.0  # GPU acceleration (optional)
-networkx>=3.1  # Graph algorithms for entanglement topology
-scipy>=1.11.0  # Advanced optimization and linear algebra
-psutil>=5.9.0  # System monitoring
-zstandard>=0.21.0  # Compression for distributed communication
+# Utils
+click==8.1.0
+rich==13.7.0

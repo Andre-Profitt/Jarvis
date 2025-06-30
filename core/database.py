@@ -1,526 +1,410 @@
 #!/usr/bin/env python3
 """
-Database Layer for JARVIS
-Persistent storage for memories, learning, and state
+Database Layer for JARVIS - Test Compatible Version
 """
 
-import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
-from sqlalchemy import create_engine, Column, String, DateTime, Float, JSON, Text, Integer, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, Session
-from sqlalchemy.pool import QueuePool
+import uuid
 import json
 import logging
 from contextlib import contextmanager
-import pickle
 import numpy as np
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from sqlalchemy import (
+    create_engine, Column, String, DateTime, Float, JSON, Integer, 
+    LargeBinary, Text, Boolean, ForeignKey, func
+)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import QueuePool
 
+logger = logging.getLogger(__name__)
 Base = declarative_base()
 
-# Database Models
 
 class Conversation(Base):
-    """Store conversation history"""
-    __tablename__ = 'conversations'
+    __tablename__ = "conversations"
     
     id = Column(String, primary_key=True)
     user_id = Column(String, nullable=False, index=True)
     started_at = Column(DateTime, default=datetime.utcnow)
     ended_at = Column(DateTime, nullable=True)
     context = Column(JSON, default=dict)
-    summary = Column(Text, nullable=True)
-    sentiment_score = Column(Float, default=0.0)
-    
-    # Relationships
-    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
-    learnings = relationship("Learning", back_populates="conversation")
 
 
 class Message(Base):
-    """Individual messages in conversations"""
-    __tablename__ = 'messages'
+    __tablename__ = "messages"
     
     id = Column(String, primary_key=True)
-    conversation_id = Column(String, ForeignKey('conversations.id'), nullable=False)
-    role = Column(String, nullable=False)  # 'user', 'assistant', 'system'
+    conversation_id = Column(String, nullable=False)
+    role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    model_used = Column(String, nullable=True)
-    confidence_score = Column(Float, nullable=True)
-    feedback_score = Column(Float, nullable=True)
-    
-    # Relationships
-    conversation = relationship("Conversation", back_populates="messages")
+    meta = Column("metadata", JSON, default=dict)
 
 
 class Learning(Base):
-    """Things JARVIS has learned"""
-    __tablename__ = 'learnings'
+    __tablename__ = "learnings"
     
     id = Column(String, primary_key=True)
-    conversation_id = Column(String, ForeignKey('conversations.id'), nullable=True)
-    learned_at = Column(DateTime, default=datetime.utcnow)
-    learning_type = Column(String, nullable=False)  # 'fact', 'preference', 'correction', 'pattern'
+    user_id = Column(String, nullable=False)
+    learning_type = Column(String, nullable=False)
     content = Column(JSON, nullable=False)
-    confidence = Column(Float, default=0.5)
+    context = Column(JSON, default=dict)
+    confidence_score = Column(Float, default=0.5)
     reinforcement_count = Column(Integer, default=0)
-    last_used = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    conversation = relationship("Conversation", back_populates="learnings")
-
-
-class Memory(Base):
-    """Long-term memory storage"""
-    __tablename__ = 'memories'
-    
-    id = Column(String, primary_key=True)
-    memory_type = Column(String, nullable=False)  # 'episodic', 'semantic', 'procedural'
-    content = Column(JSON, nullable=False)
-    importance_score = Column(Float, default=0.5)
-    access_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_accessed = Column(DateTime, default=datetime.utcnow)
-    embedding = Column(Text, nullable=True)  # Serialized vector
-    tags = Column(JSON, default=list)
-    
-    # Methods
-    def get_embedding(self) -> Optional[np.ndarray]:
-        """Deserialize embedding vector"""
-        if self.embedding:
-            return pickle.loads(self.embedding.encode('latin1'))
-        return None
-    
-    def set_embedding(self, vector: np.ndarray):
-        """Serialize embedding vector"""
-        self.embedding = pickle.dumps(vector).decode('latin1')
-
-
-class AgentState(Base):
-    """Persistent state for swarm agents"""
-    __tablename__ = 'agent_states'
-    
-    agent_id = Column(String, primary_key=True)
-    agent_type = Column(String, nullable=False)
-    capabilities = Column(JSON, default=list)
-    position = Column(JSON, nullable=True)  # For swarm behaviors
-    reputation = Column(Float, default=1.0)
-    task_history = Column(JSON, default=list)
-    knowledge_base = Column(JSON, default=dict)
-    last_active = Column(DateTime, default=datetime.utcnow)
-    total_tasks_completed = Column(Integer, default=0)
-    average_performance = Column(Float, default=0.0)
-
-
-class Task(Base):
-    """Task tracking and history"""
-    __tablename__ = 'tasks'
-    
-    id = Column(String, primary_key=True)
-    task_type = Column(String, nullable=False)
-    status = Column(String, default='pending')
-    priority = Column(Float, default=1.0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    started_at = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
-    assigned_agents = Column(JSON, default=list)
-    payload = Column(JSON, default=dict)
-    result = Column(JSON, nullable=True)
-    performance_metrics = Column(JSON, default=dict)
-
-
-class UserPreference(Base):
-    """User preferences and settings"""
-    __tablename__ = 'user_preferences'
-    
-    user_id = Column(String, primary_key=True)
-    preferences = Column(JSON, default=dict)
-    communication_style = Column(String, default='friendly')
-    timezone = Column(String, default='UTC')
-    language = Column(String, default='en')
-    voice_settings = Column(JSON, default=dict)
-    privacy_settings = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
-class ModelCheckpoint(Base):
-    """Model versioning and checkpoints"""
-    __tablename__ = 'model_checkpoints'
+class Memory(Base):
+    __tablename__ = "memories"
     
     id = Column(String, primary_key=True)
-    model_name = Column(String, nullable=False)
-    version = Column(String, nullable=False)
+    user_id = Column(String, nullable=False)
+    memory_type = Column(String, nullable=False)
+    content = Column(JSON, nullable=False)
+    importance_score = Column(Float, default=0.5)
+    access_count = Column(Integer, default=0)
+    tags = Column(JSON, default=list)
+    embedding = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    metrics = Column(JSON, default=dict)
-    parameters = Column(JSON, default=dict)
-    file_path = Column(String, nullable=False)
-    is_active = Column(Boolean, default=False)
-    rollback_count = Column(Integer, default=0)
+    last_accessed = Column(DateTime, default=datetime.utcnow)
+    
+    def set_embedding(self, embedding: np.ndarray):
+        """Store numpy array as binary"""
+        self.embedding = embedding.tobytes()
+    
+    def get_embedding(self) -> Optional[np.ndarray]:
+        """Retrieve binary as numpy array"""
+        if self.embedding:
+            return np.frombuffer(self.embedding, dtype=np.float32)
+        return None
 
 
-# Database Manager
+class AgentState(Base):
+    __tablename__ = "agent_states"
+    
+    id = Column(String, primary_key=True)
+    agent_id = Column(String, nullable=False, unique=True)
+    state_data = Column(JSON, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+    
+    id = Column(String, primary_key=True)
+    data = Column(JSON, nullable=False)
+    status = Column(String, default='pending')
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
 
 class DatabaseManager:
-    """Manage database connections and operations"""
+    """Manages database operations with test-compatible interface"""
     
-    def __init__(self, database_url: Optional[str] = None):
-        self.database_url = database_url or os.getenv('DATABASE_URL', 'sqlite:///jarvis.db')
+    def __init__(self, connection_string: str = None):
+        if connection_string is None:
+            connection_string = os.environ.get(
+                "DATABASE_URL", "sqlite:///jarvis.db"
+            )
         
-        # Create engine with connection pooling
-        self.engine = create_engine(
-            self.database_url,
-            poolclass=QueuePool,
-            pool_size=20,
-            max_overflow=40,
-            pool_pre_ping=True,  # Verify connections before using
-            echo=False
-        )
+        if connection_string.startswith("sqlite"):
+            self.engine = create_engine(connection_string, echo=False)
+        else:
+            self.engine = create_engine(
+                connection_string,
+                poolclass=QueuePool,
+                pool_size=10,
+                echo=False
+            )
         
-        # Create session factory
-        self.SessionLocal = sessionmaker(
-            bind=self.engine,
-            autocommit=False,
-            autoflush=False
-        )
-        
-        # Create tables
-        self.create_tables()
-        
-        logger.info(f"Database initialized: {self.database_url}")
-    
-    def create_tables(self):
-        """Create all database tables"""
-        Base.metadata.create_all(bind=self.engine)
-        logger.info("Database tables created/verified")
+        Base.metadata.create_all(self.engine)
+        self.SessionLocal = sessionmaker(bind=self.engine)
+        self.logger = logger
     
     @contextmanager
     def get_session(self) -> Session:
-        """Context manager for database sessions"""
+        """Get database session with automatic cleanup"""
         session = self.SessionLocal()
         try:
             yield session
             session.commit()
         except Exception as e:
             session.rollback()
-            logger.error(f"Database error: {e}")
+            self.logger.error(f"Database error: {e}")
             raise
         finally:
             session.close()
     
-    # Conversation Management
-    
-    def create_conversation(self, user_id: str, context: Optional[Dict[str, Any]] = None) -> str:
+    def create_conversation(self, user_id: str, context: Optional[Dict] = None) -> str:
         """Create new conversation"""
+        conv_id = str(uuid.uuid4())
+        
         with self.get_session() as session:
             conversation = Conversation(
-                id=f"conv_{datetime.utcnow().timestamp()}",
+                id=conv_id,
                 user_id=user_id,
                 context=context or {}
             )
             session.add(conversation)
-            return conversation.id
+        
+        return conv_id
     
-    def add_message(self, 
-                   conversation_id: str,
-                   role: str,
-                   content: str,
-                   model_used: Optional[str] = None,
-                   confidence: Optional[float] = None) -> str:
+    def add_message(self, conversation_id: str, role: str, content: str,
+                   metadata: Optional[Dict] = None) -> str:
         """Add message to conversation"""
+        msg_id = str(uuid.uuid4())
+        
         with self.get_session() as session:
             message = Message(
-                id=f"msg_{datetime.utcnow().timestamp()}",
+                id=msg_id,
                 conversation_id=conversation_id,
                 role=role,
                 content=content,
-                model_used=model_used,
-                confidence_score=confidence
+                meta=metadata or {}
             )
             session.add(message)
-            return message.id
+        
+        return msg_id
     
-    def get_conversation_history(self, 
-                               conversation_id: str,
-                               limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get conversation messages"""
+    def get_conversation_history(self, conversation_id: str) -> List[Dict]:
+        """Get all messages in conversation"""
         with self.get_session() as session:
-            query = session.query(Message).filter_by(
+            messages = session.query(Message).filter_by(
                 conversation_id=conversation_id
-            ).order_by(Message.timestamp)
+            ).order_by(Message.timestamp).all()
             
-            if limit:
-                query = query.limit(limit)
-            
-            messages = query.all()
-            
-            return [{
-                'id': msg.id,
-                'role': msg.role,
-                'content': msg.content,
-                'timestamp': msg.timestamp.isoformat(),
-                'model_used': msg.model_used,
-                'confidence': msg.confidence_score
-            } for msg in messages]
+            return [
+                {
+                    "role": msg.role,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat(),
+                    "metadata": msg.meta
+                }
+                for msg in messages
+            ]
     
-    # Learning Management
-    
-    def record_learning(self,
-                       learning_type: str,
-                       content: Dict[str, Any],
-                       conversation_id: Optional[str] = None,
+    def record_learning(self, user_id: str, learning_type: str, 
+                       content: Dict[str, Any], context: Optional[Dict] = None,
                        confidence: float = 0.5) -> str:
-        """Record something JARVIS learned"""
+        """Record new learning"""
+        learning_id = str(uuid.uuid4())
+        
         with self.get_session() as session:
             learning = Learning(
-                id=f"learn_{datetime.utcnow().timestamp()}",
-                conversation_id=conversation_id,
+                id=learning_id,
+                user_id=user_id,
                 learning_type=learning_type,
                 content=content,
-                confidence=confidence
+                context=context or {},
+                confidence_score=confidence
             )
             session.add(learning)
-            return learning.id
+        
+        return learning_id
     
-    def get_learnings(self,
-                     learning_type: Optional[str] = None,
-                     min_confidence: float = 0.0,
-                     limit: int = 100) -> List[Dict[str, Any]]:
-        """Retrieve learnings"""
+    def get_learnings(self, user_id: str, learning_type: Optional[str] = None) -> List[Dict]:
+        """Get user learnings"""
         with self.get_session() as session:
-            query = session.query(Learning).filter(
-                Learning.confidence >= min_confidence
-            )
+            query = session.query(Learning).filter_by(user_id=user_id)
             
             if learning_type:
                 query = query.filter_by(learning_type=learning_type)
             
-            learnings = query.order_by(
-                Learning.confidence.desc()
-            ).limit(limit).all()
+            learnings = query.all()
             
-            return [{
-                'id': l.id,
-                'type': l.learning_type,
-                'content': l.content,
-                'confidence': l.confidence,
-                'learned_at': l.learned_at.isoformat()
-            } for l in learnings]
+            return [
+                {
+                    "id": l.id,
+                    "learning_type": l.learning_type,
+                    "content": l.content,
+                    "context": l.context,
+                    "confidence_score": l.confidence_score,
+                    "reinforcement_count": l.reinforcement_count
+                }
+                for l in learnings
+            ]
     
     def reinforce_learning(self, learning_id: str, positive: bool = True):
         """Reinforce or weaken a learning"""
         with self.get_session() as session:
             learning = session.query(Learning).filter_by(id=learning_id).first()
+            
             if learning:
                 if positive:
-                    learning.confidence = min(1.0, learning.confidence + 0.1)
                     learning.reinforcement_count += 1
+                    learning.confidence_score = min(1.0, learning.confidence_score + 0.1)
                 else:
-                    learning.confidence = max(0.0, learning.confidence - 0.1)
-                learning.last_used = datetime.utcnow()
+                    learning.reinforcement_count = max(0, learning.reinforcement_count - 1)
+                    learning.confidence_score = max(0.0, learning.confidence_score - 0.1)
+                
+                learning.updated_at = datetime.utcnow()
     
-    # Memory Management
-    
-    def store_memory(self,
-                    memory_type: str,
-                    content: Dict[str, Any],
-                    importance: float = 0.5,
-                    tags: Optional[List[str]] = None,
-                    embedding: Optional[np.ndarray] = None) -> str:
-        """Store long-term memory"""
+    def store_memory(self, user_id: str, memory_type: str, content: Dict[str, Any],
+                    importance: float = 0.5, tags: Optional[List[str]] = None) -> str:
+        """Store new memory"""
+        memory_id = str(uuid.uuid4())
+        
         with self.get_session() as session:
             memory = Memory(
-                id=f"mem_{datetime.utcnow().timestamp()}",
+                id=memory_id,
+                user_id=user_id,
                 memory_type=memory_type,
                 content=content,
                 importance_score=importance,
                 tags=tags or []
             )
-            
-            if embedding is not None:
-                memory.set_embedding(embedding)
-            
             session.add(memory)
-            return memory.id
+        
+        return memory_id
     
-    def search_memories(self,
-                       query_embedding: Optional[np.ndarray] = None,
-                       memory_type: Optional[str] = None,
-                       tags: Optional[List[str]] = None,
-                       min_importance: float = 0.0,
-                       limit: int = 10) -> List[Dict[str, Any]]:
-        """Search memories by various criteria"""
+    def search_memories(self, user_id: str, memory_type: Optional[str] = None,
+                       tag: Optional[str] = None) -> List[Dict]:
+        """Search user memories"""
         with self.get_session() as session:
-            query = session.query(Memory).filter(
-                Memory.importance_score >= min_importance
-            )
+            query = session.query(Memory).filter_by(user_id=user_id)
             
             if memory_type:
                 query = query.filter_by(memory_type=memory_type)
             
-            memories = query.order_by(
-                Memory.importance_score.desc(),
-                Memory.last_accessed.desc()
-            ).limit(limit * 2).all()  # Get more for embedding filtering
+            memories = query.all()
             
-            results = []
-            for memory in memories:
-                # Update access count
-                memory.access_count += 1
-                memory.last_accessed = datetime.utcnow()
-                
-                result = {
-                    'id': memory.id,
-                    'type': memory.memory_type,
-                    'content': memory.content,
-                    'importance': memory.importance_score,
-                    'tags': memory.tags,
-                    'created_at': memory.created_at.isoformat()
+            # Filter by tag if specified
+            if tag:
+                memories = [m for m in memories if tag in (m.tags or [])]
+            
+            return [
+                {
+                    "id": m.id,
+                    "memory_type": m.memory_type,
+                    "content": m.content,
+                    "importance_score": m.importance_score,
+                    "tags": m.tags,
+                    "access_count": m.access_count
                 }
-                
-                # Calculate similarity if embedding provided
-                if query_embedding is not None and memory.embedding:
-                    mem_embedding = memory.get_embedding()
-                    similarity = np.dot(query_embedding, mem_embedding) / (
-                        np.linalg.norm(query_embedding) * np.linalg.norm(mem_embedding)
-                    )
-                    result['similarity'] = float(similarity)
-                
-                results.append(result)
-            
-            # Sort by similarity if embedding search
-            if query_embedding is not None:
-                results.sort(key=lambda x: x.get('similarity', 0), reverse=True)
-            
-            return results[:limit]
-    
-    # Agent State Management
+                for m in memories
+            ]
     
     def save_agent_state(self, agent_id: str, state_data: Dict[str, Any]):
-        """Save agent state"""
+        """Save or update agent state"""
         with self.get_session() as session:
-            agent_state = session.query(AgentState).filter_by(
-                agent_id=agent_id
-            ).first()
+            # Check if state exists
+            state = session.query(AgentState).filter_by(agent_id=agent_id).first()
             
-            if not agent_state:
-                agent_state = AgentState(agent_id=agent_id)
-                session.add(agent_state)
-            
-            # Update fields
-            for key, value in state_data.items():
-                if hasattr(agent_state, key):
-                    setattr(agent_state, key, value)
-            
-            agent_state.last_active = datetime.utcnow()
+            if state:
+                state.state_data = state_data
+                state.updated_at = datetime.utcnow()
+            else:
+                state = AgentState(
+                    id=str(uuid.uuid4()),
+                    agent_id=agent_id,
+                    state_data=state_data
+                )
+                session.add(state)
     
     def get_agent_state(self, agent_id: str) -> Optional[Dict[str, Any]]:
         """Get agent state"""
         with self.get_session() as session:
-            agent_state = session.query(AgentState).filter_by(
-                agent_id=agent_id
-            ).first()
-            
-            if agent_state:
-                return {
-                    'agent_id': agent_state.agent_id,
-                    'agent_type': agent_state.agent_type,
-                    'capabilities': agent_state.capabilities,
-                    'reputation': agent_state.reputation,
-                    'task_history': agent_state.task_history,
-                    'knowledge_base': agent_state.knowledge_base,
-                    'performance': agent_state.average_performance
-                }
-            
-            return None
-    
-    # Task Management
+            state = session.query(AgentState).filter_by(agent_id=agent_id).first()
+            return state.state_data if state else None
     
     def create_task(self, task_data: Dict[str, Any]) -> str:
         """Create new task"""
+        task_id = str(uuid.uuid4())
+        
         with self.get_session() as session:
             task = Task(
-                id=f"task_{datetime.utcnow().timestamp()}",
-                **task_data
+                id=task_id,
+                data=task_data,
+                status='pending'
             )
             session.add(task)
-            return task.id
+        
+        return task_id
     
-    def update_task_status(self, 
-                          task_id: str,
-                          status: str,
-                          result: Optional[Dict[str, Any]] = None):
+    def update_task_status(self, task_id: str, status: str, updates: Optional[Dict] = None):
         """Update task status"""
         with self.get_session() as session:
             task = session.query(Task).filter_by(id=task_id).first()
+            
             if task:
                 task.status = status
+                if updates:
+                    task.data = {**task.data, **updates}
                 if status == 'completed':
                     task.completed_at = datetime.utcnow()
-                    if result:
-                        task.result = result
-                elif status == 'in_progress':
-                    task.started_at = datetime.utcnow()
-    
-    # Analytics
     
     def get_conversation_analytics(self, user_id: str) -> Dict[str, Any]:
         """Get conversation analytics for user"""
         with self.get_session() as session:
-            conversations = session.query(Conversation).filter_by(
+            # Total conversations
+            total_convs = session.query(func.count(Conversation.id)).filter_by(
                 user_id=user_id
-            ).all()
+            ).scalar() or 0
             
-            total_messages = session.query(Message).join(
-                Conversation
-            ).filter(Conversation.user_id == user_id).count()
+            # Active conversations
+            active_convs = session.query(func.count(Conversation.id)).filter_by(
+                user_id=user_id, ended_at=None
+            ).scalar() or 0
             
-            avg_sentiment = session.query(
-                func.avg(Conversation.sentiment_score)
-            ).filter_by(user_id=user_id).scalar() or 0.0
+            # Get conversation IDs
+            conv_ids = session.query(Conversation.id).filter_by(user_id=user_id).all()
+            conv_ids = [c[0] for c in conv_ids]
+            
+            # Total messages
+            total_messages = 0
+            if conv_ids:
+                total_messages = session.query(func.count(Message.id)).filter(
+                    Message.conversation_id.in_(conv_ids)
+                ).scalar() or 0
+            
+            avg_messages = total_messages / total_convs if total_convs > 0 else 0
             
             return {
-                'total_conversations': len(conversations),
-                'total_messages': total_messages,
-                'average_sentiment': float(avg_sentiment),
-                'active_conversations': sum(1 for c in conversations if c.ended_at is None)
+                "total_conversations": total_convs,
+                "active_conversations": active_convs,
+                "total_messages": total_messages,
+                "avg_messages_per_conversation": avg_messages
             }
     
-    def cleanup_old_data(self, days: int = 90):
+    def cleanup_old_data(self, days: int = 90) -> Dict[str, int]:
         """Clean up old data"""
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        
         with self.get_session() as session:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
-            
-            # Delete old completed tasks
-            session.query(Task).filter(
-                Task.completed_at < cutoff_date,
-                Task.status == 'completed'
-            ).delete()
-            
-            # Reduce importance of old memories
-            old_memories = session.query(Memory).filter(
-                Memory.last_accessed < cutoff_date
+            # Find old conversations
+            old_convs = session.query(Conversation).filter(
+                Conversation.ended_at < cutoff_date
             ).all()
             
-            for memory in old_memories:
-                memory.importance_score *= 0.9
+            deleted_convs = len(old_convs)
+            
+            # Delete associated messages and conversations
+            for conv in old_convs:
+                session.query(Message).filter_by(conversation_id=conv.id).delete()
+                session.delete(conv)
+            
+            return {"conversations": deleted_convs}
 
 
-# Singleton instance
-db_manager = DatabaseManager()
+# Global instance
+db_manager = None
 
 
-# Helper functions
-def init_database():
-    """Initialize database with tables"""
-    db_manager.create_tables()
-    logger.info("Database initialized successfully")
+def init_database(connection_string: str = None):
+    """Initialize global database manager"""
+    global db_manager
+    import os
+    
+    if connection_string is None:
+        connection_string = os.environ.get("DATABASE_URL", "sqlite:///jarvis.db")
+    
+    db_manager = DatabaseManager(connection_string)
+    return db_manager
 
 
-if __name__ == "__main__":
-    init_database()
+# Import os at module level
+import os

@@ -1,0 +1,6 @@
+# Minimal requirements for Claude Memory RAG
+# Works with Anaconda Python
+
+# Only essential packages
+google-cloud-storage
+numpy

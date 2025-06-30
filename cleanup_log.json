@@ -1,0 +1,73 @@
+{
+  "timestamp": "2025-06-30T15:33:06.631737",
+  "backup_directory": "backup_20250630_153306",
+  "actions": [
+    {
+      "file": "mcp_servers/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "file": "utils/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "file": "tests/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "file": "config/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "file": "scripts/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "file": "examples/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "file": "docs/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "file": "templates/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "file": ".github/workflows/__init__.py",
+      "action": "populated",
+      "content": "minimal __init__.py"
+    },
+    {
+      "action": "identified_duplicates",
+      "duplicate_classes": {
+        "EliteProactiveAssistant": [
+          "core/elite_proactive_assistant.py",
+          "core/elite_proactive_assistant_v2.py"
+        ],
+        "ProactiveIntelligenceEngine": [
+          "Multiple files"
+        ],
+        "JARVISServer": [
+          "Multiple files"
+        ],
+        "EnhancedMultiAIIntegration": [
+          "Multiple files"
+        ],
+        "Task": [
+          "core/database.py",
+          "core/autonomous_project_engine.py"
+        ]
+      }
+    }
+  ]
+}

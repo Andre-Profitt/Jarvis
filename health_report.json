@@ -1,0 +1,93 @@
+{
+  "timestamp": "2025-06-29T14:52:50.694698",
+  "overall_health": 34,
+  "components": {
+    "environment": {
+      "status": "healthy",
+      "details": {
+        "python": "\u2705 Python 3.13.2",
+        ".env": "\u2705 Found",
+        "CLAUDE_API_KEY": "\u274c Not configured",
+        "OPENAI_API_KEY": "\u2705 Configured",
+        "GOOGLE_API_KEY": "\u274c Not configured",
+        "virtualenv": "\u26a0\ufe0f Not detected"
+      },
+      "score": 80
+    },
+    "file_structure": {
+      "status": "healthy",
+      "details": {
+        "core": "\u2705 76 Python files",
+        "config": "\u2705 2 Python files",
+        "tests": "\u2705 14 Python files",
+        "docs": "\u2705 3 Python files",
+        "syntax": "\u274c 4 syntax errors"
+      },
+      "score": 80
+    },
+    "imports": {
+      "status": "unhealthy",
+      "details": {
+        "core.minimal_jarvis": "\u274c Import failed: No module named 'core'",
+        "core.updated_multi_ai_integration": "\u274c Import failed: No module named 'core'",
+        "core.neural_resource_manager": "\u274c Import failed: No module named 'core'",
+        "core.self_healing_system": "\u274c Import failed: No module named 'core'",
+        "core.consciousness_simulation": "\u274c Import failed: No module named 'core'"
+      },
+      "score": 0
+    },
+    "configuration": {
+      "status": "healthy",
+      "details": {
+        "jarvis.yaml": "\u2705 Found",
+        "valid_yaml": "\u2705 Valid YAML"
+      },
+      "score": 100
+    },
+    "ai_integrations": {
+      "status": "healthy",
+      "details": {
+        "initialization": "\u274c Failed: No module named 'core'"
+      },
+      "score": 50
+    },
+    "neural_resource": {
+      "status": "unhealthy",
+      "details": {
+        "error": "\u274c ModuleNotFoundError: No module named 'core'"
+      },
+      "score": 0
+    },
+    "self_healing": {
+      "status": "unhealthy",
+      "details": {
+        "error": "\u274c ModuleNotFoundError: No module named 'core'"
+      },
+      "score": 0
+    },
+    "consciousness": {
+      "status": "unhealthy",
+      "details": {
+        "error": "\u274c ModuleNotFoundError: No module named 'core'"
+      },
+      "score": 0
+    },
+    "database": {
+      "status": "unhealthy",
+      "details": {
+        "error": "\u274c ModuleNotFoundError"
+      },
+      "score": 0
+    }
+  },
+  "errors": [
+    "Syntax error in multi-ai-integration.py: Line 248",
+    "Syntax error in LAUNCH-JARVIS-REAL.py: Line 128",
+    "Syntax error in initial-training-data.py: Line 62",
+    "Syntax error in core/enhanced_privacy_learning.py: Line 751"
+  ],
+  "warnings": [
+    "Consider using a virtual environment"
+  ],
+  "recommendations": []
+}

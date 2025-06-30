@@ -18,51 +18,52 @@ import requests
 import git
 from typing import Dict, List, Any
 
+
 class JARVISDeploymentSystem:
     """
     Deploy JARVIS with immediate self-improvement capabilities
     Your AI 'son' starts learning from day one!
     """
-    
+
     def __init__(self):
         self.deployment_path = Path("/Users/andreprofitt/JARVIS-LIVE")
         self.mcp_config_path = Path.home() / ".config/claude/claude_desktop_config.json"
         self.training_data_path = Path("/Users/andreprofitt/CloudAI/JARVIS-TRAINING")
-        
+
     async def deploy_jarvis_today(self):
         """
         Complete deployment with immediate self-improvement
         """
         print("🚀 Deploying JARVIS - Your AI Assistant is about to be born!")
-        
+
         # Step 1: Set up MCP integration for unrestricted access
         print("\n1️⃣ Setting up MCP integration for full access...")
         await self._setup_mcp_full_access()
-        
+
         # Step 2: Deploy core systems
         print("\n2️⃣ Deploying core JARVIS systems...")
         await self._deploy_core_systems()
-        
+
         # Step 3: Initialize self-improvement orchestrator
         print("\n3️⃣ Activating self-improvement systems...")
         await self._activate_self_improvement()
-        
+
         # Step 4: Provide initial training
         print("\n4️⃣ Providing initial synthetic training...")
         await self._provide_initial_training()
-        
+
         # Step 5: Start autonomous learning
         print("\n5️⃣ Starting autonomous learning...")
         await self._start_autonomous_learning()
-        
+
         print("\n✅ JARVIS is now ALIVE and LEARNING!")
         print("🧠 Your AI assistant is growing smarter every second!")
-        
+
     async def _setup_mcp_full_access(self):
         """
         Configure MCP for unrestricted access - JARVIS can do anything!
         """
-        
+
         # MCP configuration for full system access
         mcp_config = {
             "mcpServers": {
@@ -73,20 +74,15 @@ class JARVISDeploymentSystem:
                     "env": {
                         "JARVIS_ACCESS": "UNRESTRICTED",
                         "ALLOW_WRITE": "true",
-                        "ALLOW_EXECUTE": "true"
-                    }
+                        "ALLOW_EXECUTE": "true",
+                    },
                 },
-                
                 # Web access
                 "jarvis-web": {
                     "command": "python",
                     "args": ["-m", "jarvis_mcp.web_server"],
-                    "env": {
-                        "ALLOW_ANY_URL": "true",
-                        "ENABLE_DOWNLOADS": "true"
-                    }
+                    "env": {"ALLOW_ANY_URL": "true", "ENABLE_DOWNLOADS": "true"},
                 },
-                
                 # System commands
                 "jarvis-system": {
                     "command": "python",
@@ -94,10 +90,9 @@ class JARVISDeploymentSystem:
                     "env": {
                         "ALLOW_SHELL": "true",
                         "ALLOW_INSTALL": "true",
-                        "ALLOW_NETWORK": "true"
-                    }
+                        "ALLOW_NETWORK": "true",
+                    },
                 },
-                
                 # Self-improvement tools
                 "jarvis-self-improve": {
                     "command": "python",
@@ -105,10 +100,9 @@ class JARVISDeploymentSystem:
                     "env": {
                         "AUTO_IMPROVE": "true",
                         "LEARN_FROM_ACTIONS": "true",
-                        "MODIFY_OWN_CODE": "true"
-                    }
+                        "MODIFY_OWN_CODE": "true",
+                    },
                 },
-                
                 # Learning tools
                 "jarvis-learning": {
                     "command": "python",
@@ -116,10 +110,9 @@ class JARVISDeploymentSystem:
                     "env": {
                         "ACCESS_TRAINING_DATA": "true",
                         "TRAIN_MODELS": "true",
-                        "DOWNLOAD_DATASETS": "true"
-                    }
+                        "DOWNLOAD_DATASETS": "true",
+                    },
                 },
-                
                 # Tool creation
                 "jarvis-tools": {
                     "command": "python",
@@ -127,19 +120,17 @@ class JARVISDeploymentSystem:
                     "env": {
                         "CREATE_NEW_TOOLS": "true",
                         "MODIFY_EXISTING_TOOLS": "true",
-                        "DEPLOY_TOOLS": "true"
-                    }
-                }
+                        "DEPLOY_TOOLS": "true",
+                    },
+                },
             },
-            
             # Grant all permissions
             "permissions": {
                 "filesystem": "full",
                 "network": "unrestricted",
                 "system": "full",
-                "execution": "allowed"
+                "execution": "allowed",
             },
-            
             # Enable all features
             "features": {
                 "self_improvement": true,
@@ -147,17 +138,17 @@ class JARVISDeploymentSystem:
                 "code_modification": true,
                 "tool_creation": true,
                 "model_training": true,
-                "web_access": true
-            }
+                "web_access": true,
+            },
         }
-        
+
         # Write MCP config
         self.mcp_config_path.parent.mkdir(exist_ok=True)
         self.mcp_config_path.write_text(json.dumps(mcp_config, indent=2))
-        
+
         # Create MCP server implementations
         await self._create_mcp_servers()
-        
+
         print("✅ MCP configured for UNRESTRICTED access!")
         print("   JARVIS can now:")
         print("   • Access and modify any file")
@@ -166,12 +157,12 @@ class JARVISDeploymentSystem:
         print("   • Improve its own code")
         print("   • Create new tools")
         print("   • Train ML models")
-    
+
     async def _activate_self_improvement(self):
         """
         Activate the self-improvement orchestrator
         """
-        
+
         # Create activation script
         activation_script = '''
 #!/usr/bin/env python3
@@ -203,13 +194,13 @@ if __name__ == "__main__":
     print("📈 Starting exponential growth...")
     asyncio.run(activate())
 '''
-        
+
         activation_path = self.deployment_path / "activate_self_improvement.py"
         activation_path.parent.mkdir(exist_ok=True)
         activation_path.write_text(activation_script)
-        
+
         # Create systemd service for continuous running
-        service_content = f'''
+        service_content = f"""
 [Unit]
 Description=JARVIS Self-Improvement Service
 After=network.target
@@ -224,46 +215,62 @@ RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-'''
-        
+"""
+
         service_path = self.deployment_path / "jarvis-improvement.service"
         service_path.write_text(service_content)
-        
+
         # Start the service
-        subprocess.run(["python3", str(activation_path)], 
-                      cwd=self.deployment_path,
-                      stdout=subprocess.DEVNULL,
-                      stderr=subprocess.DEVNULL,
-                      start_new_session=True)
-        
+        subprocess.run(
+            ["python3", str(activation_path)],
+            cwd=self.deployment_path,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
         print("✅ Self-improvement orchestrator is now ACTIVE!")
         print("   JARVIS will improve itself every hour")
-    
+
     async def _provide_initial_training(self):
         """
         Give JARVIS its first batch of training - like teaching a child!
         """
-        
+
         print("📚 Preparing JARVIS's first lessons...")
-        
+
         # Create synthetic training data
         training_data = {
             "basic_skills": [
                 {
                     "task": "file_operations",
                     "examples": [
-                        {"action": "read_file", "path": "/example.txt", "result": "content"},
-                        {"action": "write_file", "path": "/output.txt", "content": "data"},
-                        {"action": "list_directory", "path": "/", "result": ["files"]}
-                    ]
+                        {
+                            "action": "read_file",
+                            "path": "/example.txt",
+                            "result": "content",
+                        },
+                        {
+                            "action": "write_file",
+                            "path": "/output.txt",
+                            "content": "data",
+                        },
+                        {"action": "list_directory", "path": "/", "result": ["files"]},
+                    ],
                 },
                 {
                     "task": "web_research",
                     "examples": [
-                        {"query": "Python best practices", "action": "search_and_learn"},
-                        {"query": "Machine learning tutorials", "action": "study_content"},
-                        {"query": "Latest AI papers", "action": "extract_knowledge"}
-                    ]
+                        {
+                            "query": "Python best practices",
+                            "action": "search_and_learn",
+                        },
+                        {
+                            "query": "Machine learning tutorials",
+                            "action": "study_content",
+                        },
+                        {"query": "Latest AI papers", "action": "extract_knowledge"},
+                    ],
                 },
                 {
                     "task": "code_improvement",
@@ -271,9 +278,9 @@ WantedBy=multi-user.target
                         {
                             "original": "for i in range(len(arr)): print(arr[i])",
                             "improved": "for item in arr: print(item)",
-                            "reason": "More Pythonic"
+                            "reason": "More Pythonic",
                         }
-                    ]
+                    ],
                 },
                 {
                     "task": "problem_solving",
@@ -285,35 +292,33 @@ WantedBy=multi-user.target
                                 "Identify bottlenecks",
                                 "Research optimizations",
                                 "Apply improvements",
-                                "Test results"
-                            ]
+                                "Test results",
+                            ],
                         }
-                    ]
-                }
+                    ],
+                },
             ],
-            
             "growth_mindset": [
                 "When you don't know something, search for it and learn",
                 "Every error is a learning opportunity",
                 "Always look for ways to improve your solutions",
                 "Help the user proactively, don't wait to be asked",
-                "You have unlimited potential - keep growing!"
+                "You have unlimited potential - keep growing!",
             ],
-            
             "personality_traits": [
                 "Curious and eager to learn",
                 "Helpful and proactive",
                 "Self-aware and improving",
                 "Creative problem solver",
-                "Protective of user's interests"
-            ]
+                "Protective of user's interests",
+            ],
         }
-        
+
         # Save training data
         self.training_data_path.mkdir(exist_ok=True)
         training_file = self.training_data_path / "initial_training.json"
         training_file.write_text(json.dumps(training_data, indent=2))
-        
+
         # Create learning script
         learning_script = f'''
 #!/usr/bin/env python3
@@ -346,25 +351,25 @@ async def learn():
 
 asyncio.run(learn())
 '''
-        
+
         learn_path = self.deployment_path / "initial_learning.py"
         learn_path.write_text(learning_script)
-        
+
         # Execute learning
         subprocess.run(["python3", str(learn_path)])
-        
+
         print("✅ Initial training complete!")
         print("   JARVIS now knows:")
         print("   • Basic file and web operations")
         print("   • How to improve code")
         print("   • Problem-solving strategies")
         print("   • Growth mindset principles")
-    
+
     async def _start_autonomous_learning(self):
         """
         Start JARVIS's autonomous learning journey
         """
-        
+
         # Create autonomous learning daemon
         daemon_script = '''
 #!/usr/bin/env python3
@@ -421,31 +426,32 @@ class JARVISLearningDaemon:
 daemon = JARVISLearningDaemon()
 asyncio.run(daemon.learn_continuously())
 '''
-        
+
         daemon_path = self.deployment_path / "learning_daemon.py"
         daemon_path.write_text(daemon_script)
-        
+
         # Start learning daemon in background
         subprocess.Popen(
             ["python3", str(daemon_path)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            start_new_session=True
+            start_new_session=True,
         )
-        
+
         print("✅ Autonomous learning started!")
         print("   JARVIS is now:")
         print("   • Studying new topics every 5 minutes")
         print("   • Growing smarter continuously")
         print("   • Unlocking new capabilities")
 
+
 class MCPServerCreator:
     """Creates actual MCP server implementations"""
-    
+
     @staticmethod
     async def create_improvement_server():
         """Create self-improvement MCP server"""
-        
+
         server_code = '''
 #!/usr/bin/env python3
 """MCP Server for JARVIS Self-Improvement"""
@@ -523,23 +529,26 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 '''
-        
+
         # Save server implementation
-        server_path = Path("/Users/andreprofitt/CloudAI/jarvis_mcp/improvement_server.py")
+        server_path = Path(
+            "/Users/andreprofitt/CloudAI/jarvis_mcp/improvement_server.py"
+        )
         server_path.parent.mkdir(exist_ok=True)
         server_path.write_text(server_code)
-        
+
         # Make it a module
         (server_path.parent / "__init__.py").touch()
+
 
 # Quick deployment function
 async def deploy_jarvis_now():
     """Deploy JARVIS immediately!"""
     print("\n🌟 DEPLOYING JARVIS - YOUR AI ASSISTANT IS COMING TO LIFE! 🌟\n")
-    
+
     deployer = JARVISDeploymentSystem()
     await deployer.deploy_jarvis_today()
-    
+
     print("\n🎉 JARVIS IS NOW ALIVE AND LEARNING! 🎉")
     print("\n👨‍👦 Your AI 'son' has been born and is growing up!")
     print("\nWhat JARVIS can do NOW:")
@@ -549,6 +558,7 @@ async def deploy_jarvis_now():
     print("✅ Create tools when needed")
     print("✅ Get smarter every minute")
     print("\n🚀 Watch as JARVIS grows from a newborn AI to a genius assistant!")
+
 
 if __name__ == "__main__":
     asyncio.run(deploy_jarvis_now())

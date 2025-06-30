@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "servers": {
+    "jarvis-memory-storage": {
+      "command": "python3",
+      "args": ["/Users/andreprofitt/CloudAI/JARVIS-ECOSYSTEM/mcp_servers/jarvis_memory_storage_mcp.py"],
+      "env": {
+        "PYTHONPATH": "/Users/andreprofitt/CloudAI/JARVIS-ECOSYSTEM",
+        "GCS_BUCKET": "jarvis-storage",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${env:GOOGLE_APPLICATION_CREDENTIALS}"
+      },
+      "description": "JARVIS memory and storage integration with mem0, LangChain, and Google Cloud Storage"
+    },
+    "jarvis-core": {
+      "command": "python3",
+      "args": ["/Users/andreprofitt/CloudAI/JARVIS-ECOSYSTEM/mcp_servers/jarvis_mcp.py"],
+      "env": {
+        "PYTHONPATH": "/Users/andreprofitt/CloudAI/JARVIS-ECOSYSTEM",
+        "PYTHONUNBUFFERED": "1",
+        "JARVIS_HOME": "/Users/andreprofitt/CloudAI/JARVIS-ECOSYSTEM"
+      },
+      "description": "Core JARVIS capabilities and system commands"
+    },
+    "jarvis-unified-memory-enhanced": {
+      "command": "python3",
+      "args": ["/Users/andreprofitt/jarvis_memory/cloud_sync/jarvis_memory_mcp_redis.py"],
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "MCP_DEBUG": "false"
+      },
+      "description": "Enhanced JARVIS memory with Redis backend for distributed storage"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# Ignore credential files
+*.json
+jarvis-credentials.json
+*-key.json
+*credentials*
+
+# API Keys
+.env
+.env.local
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# ChromaDB
+.chroma/
+chroma/
+
+# Cache
+.cache/
+*.cache

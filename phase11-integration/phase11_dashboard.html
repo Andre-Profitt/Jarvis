@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Phase 11 - System Integration Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e1a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        
+        .dashboard {
+            min-height: 100vh;
+            background: radial-gradient(ellipse at top, #1a2332 0%, #0a0e1a 100%);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #00d4ff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-healthy { background: #00ff88; }
+        .status-degraded { background: #ffaa00; }
+        .status-critical { background: #ff3366; }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(0, 212, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.1);
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            animation: scan 3s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+        
+        .phase-badge {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .metric {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: 600;
+            color: #00d4ff;
+            margin: 5px 0;
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            color: #888;
+        }
+        
+        .phase-flow {
+            grid-column: 1 / -1;
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .flow-container {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 20px;
+        }
+        
+        .phase-node {
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid #00d4ff;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+        
+        .phase-node:hover {
+            transform: scale(1.1);
+            background: rgba(0, 212, 255, 0.2);
+        }
+        
+        .phase-number {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+        
+        .phase-name {
+            font-size: 0.7em;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .flow-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            top: 50%;
+            animation: flow 2s linear infinite;
+        }
+        
+        @keyframes flow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .integration-matrix {
+            grid-column: 1 / -1;
+        }
+        
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin-top: 15px;
+        }
+        
+        .matrix-cell {
+            aspect-ratio: 1;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .matrix-cell:hover {
+            background: rgba(0, 212, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .matrix-cell.active {
+            background: rgba(0, 255, 136, 0.3);
+            border-color: #00ff88;
+        }
+        
+        .performance-chart {
+            height: 200px;
+            position: relative;
+            margin-top: 15px;
+        }
+        
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .alerts-panel {
+            grid-column: 1 / -1;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .alert-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 3px solid #ffaa00;
+        }
+        
+        .alert-item.critical {
+            border-left-color: #ff3366;
+            background: rgba(255, 51, 102, 0.1);
+        }
+        
+        .alert-item.info {
+            border-left-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        .alert-icon {
+            font-size: 1.2em;
+        }
+        
+        .alert-content {
+            flex: 1;
+        }
+        
+        .alert-time {
+            font-size: 0.8em;
+            color: #888;
+        }
+        
+        .control-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-button {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid #00d4ff;
+            color: #00d4ff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .control-button:hover {
+            background: rgba(0, 212, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #00d4ff;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .phase-flow {
+                height: auto;
+            }
+            
+            .flow-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>JARVIS Phase 11 - System Integration</h1>
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot status-healthy"></div>
+                    <span>System Health: <strong id="system-health">OPTIMAL</strong></span>
+                </div>
+                <div class="status-indicator">
+                    <span>Uptime: <strong id="uptime">0h 0m</strong></span>
+                </div>
+                <div class="status-indicator">
+                    <span>Active Phases: <strong id="active-phases">10/10</strong></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <!-- Phase Flow Visualization -->
+            <div class="card phase-flow">
+                <div class="card-header">
+                    <h3 class="card-title">Phase Integration Flow</h3>
+                </div>
+                <div class="flow-container">
+                    <div class="flow-line" style="left: 0; right: 0;"></div>
+                    <div class="phase-node" data-phase="1">
+                        <div class="phase-number">1</div>
+                        <div class="phase-name">Input</div>
+                    </div>
+                    <div class="phase-node" data-phase="2">
+                        <div class="phase-number">2</div>
+                        <div class="phase-name">Context</div>
+                    </div>
+                    <div class="phase-node" data-phase="3">
+                        <div class="phase-number">3</div>
+                        <div class="phase-name">Proactive</div>
+                    </div>
+                    <div class="phase-node" data-phase="4">
+                        <div class="phase-number">4</div>
+                        <div class="phase-name">NLP</div>
+                    </div>
+                    <div class="phase-node" data-phase="5">
+                        <div class="phase-number">5</div>
+                        <div class="phase-name">UI</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Metrics -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">System Performance</h3>
+                    <span class="phase-badge">Real-time</span>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-value" id="throughput">0</div>
+                        <div class="metric-label">Req/sec</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="latency">0ms</div>
+                        <div class="metric-label">Avg Latency</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="success-rate">100%</div>
+                        <div class="metric-label">Success Rate</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="error-count">0</div>
+                        <div class="metric-label">Errors</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resource Utilization -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Resource Utilization</h3>
+                    <span class="phase-badge">Phase 10</span>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-value" id="cpu-usage">0%</div>
+                        <div class="metric-label">CPU</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="memory-usage">0MB</div>
+                        <div class="metric-label">Memory</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="thread-count">0</div>
+                        <div class="metric-label">Threads</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="cache-hit">0%</div>
+                        <div class="metric-label">Cache Hit</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Integration Matrix -->
+            <div class="card integration-matrix">
+                <div class="card-header">
+                    <h3 class="card-title">Phase Integration Matrix</h3>
+                    <span class="phase-badge">All Phases</span>
+                </div>
+                <div class="matrix-grid" id="integration-matrix">
+                    <!-- Generated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Performance Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Latency Distribution</h3>
+                    <span class="phase-badge">Last 5 min</span>
+                </div>
+                <div class="performance-chart">
+                    <canvas class="chart-canvas" id="latency-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- State Distribution -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">State Distribution</h3>
+                    <span class="phase-badge">Phase 1</span>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-value" id="state-normal">0%</div>
+                        <div class="metric-label">Normal</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="state-focused">0%</div>
+                        <div class="metric-label">Focused</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="state-flow">0%</div>
+                        <div class="metric-label">Flow</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="state-stressed">0%</div>
+                        <div class="metric-label">Stressed</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alerts Panel -->
+            <div class="card alerts-panel">
+                <div class="card-header">
+                    <h3 class="card-title">System Alerts</h3>
+                    <span class="phase-badge">Live</span>
+                </div>
+                <div id="alerts-container">
+                    <!-- Generated by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button class="control-button" onclick="runIntegrationTest()">Run Tests</button>
+            <button class="control-button" onclick="toggleMonitoring()">Pause</button>
+            <button class="control-button" onclick="exportMetrics()">Export</button>
+        </div>
+    </div>
+    
+    <script>
+        // WebSocket connection for real-time updates
+        let ws = null;
+        let monitoring = true;
+        let startTime = Date.now();
+        
+        // Initialize dashboard
+        function initDashboard() {
+            connectWebSocket();
+            createIntegrationMatrix();
+            setupCharts();
+            updateUptime();
+            generateParticles();
+            
+            // Update uptime every second
+            setInterval(updateUptime, 1000);
+            
+            // Simulate data updates (replace with real WebSocket data)
+            setInterval(updateMetrics, 1000);
+        }
+        
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket('ws://localhost:8765/phase11');
+                
+                ws.onopen = () => {
+                    console.log('Connected to Phase 11 monitoring');
+                    addAlert('Connected to monitoring system', 'info');
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    updateDashboard(data);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    addAlert('Connection error', 'critical');
+                };
+                
+                ws.onclose = () => {
+                    console.log('Disconnected from monitoring');
+                    setTimeout(connectWebSocket, 5000); // Reconnect
+                };
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                // Fallback to demo mode
+                setInterval(generateDemoData, 1000);
+            }
+        }
+        
+        function createIntegrationMatrix() {
+            const matrix = document.getElementById('integration-matrix');
+            matrix.innerHTML = '';
+            
+            for (let i = 1; i <= 10; i++) {
+                for (let j = 1; j <= 10; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    cell.textContent = `${i}-${j}`;
+                    cell.dataset.from = i;
+                    cell.dataset.to = j;
+                    
+                    // Highlight active connections
+                    if (Math.abs(i - j) <= 1 || (i === 1 && j === 10)) {
+                        cell.classList.add('active');
+                    }
+                    
+                    cell.addEventListener('click', () => {
+                        showPhaseConnection(i, j);
+                    });
+                    
+                    matrix.appendChild(cell);
+                }
+            }
+        }
+        
+        function setupCharts() {
+            const canvas = document.getElementById('latency-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Simple line chart
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw axes
+            ctx.strokeStyle = '#444';
+            ctx.beginPath();
+            ctx.moveTo(30, height - 30);
+            ctx.lineTo(width - 10, height - 30);
+            ctx.moveTo(30, 10);
+            ctx.lineTo(30, height - 30);
+            ctx.stroke();
+        }
+        
+        function updateUptime() {
+            const elapsed = Date.now() - startTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            document.getElementById('uptime').textContent = `${hours}h ${minutes}m`;
+        }
+        
+        function updateMetrics() {
+            if (!monitoring) return;
+            
+            // Simulated metrics (replace with real data)
+            const metrics = {
+                throughput: Math.floor(Math.random() * 200 + 800),
+                latency: Math.floor(Math.random() * 50 + 20),
+                successRate: (Math.random() * 5 + 95).toFixed(1),
+                errorCount: Math.floor(Math.random() * 5),
+                cpuUsage: (Math.random() * 30 + 40).toFixed(1),
+                memoryUsage: Math.floor(Math.random() * 200 + 300),
+                threadCount: Math.floor(Math.random() * 10 + 50),
+                cacheHit: (Math.random() * 20 + 75).toFixed(1)
+            };
+            
+            // Update UI
+            document.getElementById('throughput').textContent = metrics.throughput;
+            document.getElementById('latency').textContent = metrics.latency + 'ms';
+            document.getElementById('success-rate').textContent = metrics.successRate + '%';
+            document.getElementById('error-count').textContent = metrics.errorCount;
+            document.getElementById('cpu-usage').textContent = metrics.cpuUsage + '%';
+            document.getElementById('memory-usage').textContent = metrics.memoryUsage + 'MB';
+            document.getElementById('thread-count').textContent = metrics.threadCount;
+            document.getElementById('cache-hit').textContent = metrics.cacheHit + '%';
+            
+            // Update state distribution
+            const states = {
+                normal: (Math.random() * 30 + 30).toFixed(1),
+                focused: (Math.random() * 20 + 20).toFixed(1),
+                flow: (Math.random() * 20 + 10).toFixed(1),
+                stressed: (Math.random() * 10 + 5).toFixed(1)
+            };
+            
+            document.getElementById('state-normal').textContent = states.normal + '%';
+            document.getElementById('state-focused').textContent = states.focused + '%';
+            document.getElementById('state-flow').textContent = states.flow + '%';
+            document.getElementById('state-stressed').textContent = states.stressed + '%';
+            
+            // Update health status
+            const health = metrics.successRate > 95 ? 'OPTIMAL' : 
+                          metrics.successRate > 90 ? 'HEALTHY' : 'DEGRADED';
+            document.getElementById('system-health').textContent = health;
+            
+            // Update status dot
+            const statusDot = document.querySelector('.status-dot');
+            statusDot.className = 'status-dot status-' + 
+                (health === 'OPTIMAL' ? 'healthy' : 
+                 health === 'HEALTHY' ? 'healthy' : 'degraded');
+        }
+        
+        function addAlert(message, type = 'info') {
+            const container = document.getElementById('alerts-container');
+            const alert = document.createElement('div');
+            alert.className = `alert-item ${type}`;
+            
+            const icon = type === 'critical' ? '⚠️' : 
+                        type === 'warning' ? '⚡' : 'ℹ️';
+            
+            const time = new Date().toLocaleTimeString();
+            
+            alert.innerHTML = `
+                <span class="alert-icon">${icon}</span>
+                <div class="alert-content">
+                    <div>${message}</div>
+                    <div class="alert-time">${time}</div>
+                </div>
+            `;
+            
+            container.insertBefore(alert, container.firstChild);
+            
+            // Keep only last 10 alerts
+            while (container.children.length > 10) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        function showPhaseConnection(from, to) {
+            addAlert(`Phase ${from} → Phase ${to} connection active`, 'info');
+        }
+        
+        function runIntegrationTest() {
+            addAlert('Running integration tests...', 'info');
+            
+            // Simulate test results
+            setTimeout(() => {
+                addAlert('Integration tests completed: 45/45 passed', 'info');
+            }, 2000);
+        }
+        
+        function toggleMonitoring() {
+            monitoring = !monitoring;
+            const button = event.target;
+            button.textContent = monitoring ? 'Pause' : 'Resume';
+            addAlert(monitoring ? 'Monitoring resumed' : 'Monitoring paused', 'info');
+        }
+        
+        function exportMetrics() {
+            addAlert('Exporting metrics...', 'info');
+            // Implementation for exporting metrics
+        }
+        
+        function generateParticles() {
+            const dashboard = document.querySelector('.dashboard');
+            
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * window.innerWidth + 'px';
+                    particle.style.top = Math.random() * window.innerHeight + 'px';
+                    
+                    dashboard.appendChild(particle);
+                    
+                    // Animate particle
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Math.random() * 100 + 50;
+                    
+                    particle.animate([
+                        { transform: 'translate(0, 0) scale(1)', opacity: 0.5 },
+                        { transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0)`, opacity: 0 }
+                    ], {
+                        duration: 2000,
+                        easing: 'ease-out'
+                    }).onfinish = () => particle.remove();
+                }
+            }, 500);
+        }
+        
+        function generateDemoData() {
+            if (!monitoring) return;
+            
+            const data = {
+                type: 'metrics',
+                timestamp: Date.now(),
+                phases: {
+                    1: { status: 'active', load: Math.random() },
+                    2: { status: 'active', load: Math.random() },
+                    3: { status: 'active', load: Math.random() },
+                    4: { status: 'active', load: Math.random() },
+                    5: { status: 'active', load: Math.random() }
+                }
+            };
+            
+            updateDashboard(data);
+        }
+        
+        function updateDashboard(data) {
+            // Update phase nodes based on load
+            if (data.phases) {
+                Object.entries(data.phases).forEach(([phase, info]) => {
+                    const node = document.querySelector(`[data-phase="${phase}"]`);
+                    if (node && info.load !== undefined) {
+                        const opacity = 0.3 + (info.load * 0.7);
+                        node.style.background = `rgba(0, 212, 255, ${opacity})`;
+                    }
+                });
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html>

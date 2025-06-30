@@ -1,0 +1,45 @@
+# JARVIS Enterprise Requirements
+# Professional-grade dependencies for world-class AI assistant
+
+# Core Web Framework
+flask==3.0.0
+flask-cors==4.0.0
+flask-socketio==5.3.5
+
+# WebSocket Support
+websockets==12.0
+python-socketio==5.10.0
+
+# Async Support
+asyncio==3.4.3
+aiohttp==3.9.1
+
+# Professional UI Components
+werkzeug==3.0.1
+
+# Production Server
+gunicorn==21.2.0
+eventlet==0.33.3
+
+# Monitoring & Analytics
+prometheus-client==0.19.0
+flask-limiter==3.5.0
+
+# Security
+cryptography==41.0.7
+python-jose==3.3.0
+passlib==1.7.4
+
+# Development Tools
+python-dotenv==1.0.0
+colorama==0.4.6
+rich==13.7.0
+
+# Your existing JARVIS dependencies
+openai>=1.0.0
+google-generativeai>=0.3.0
+anthropic>=0.7.0
+speech_recognition>=3.10.0
+pyttsx3>=2.90
+sounddevice>=0.4.6
+numpy>=1.24.0

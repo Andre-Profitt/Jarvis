@@ -1,0 +1,121 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Check PR Title
+      uses: amannn/action-semantic-pull-request@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Check commit messages
+      run: |
+        # Ensure commits follow conventional commits
+        npm install -g @commitlint/cli @commitlint/config-conventional
+        echo "module.exports = {extends: ['@commitlint/config-conventional']}" > commitlint.config.js
+        git log --format=%B ${{ github.event.pull_request.base.sha }}..${{ github.sha }} | npx commitlint
+    
+    - name: Label PR
+      uses: actions/labeler@v4
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+    
+    - name: Size Label
+      uses: codelytv/pr-size-labeler@v1
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        xs_label: 'size/xs'
+        xs_max_size: '10'
+        s_label: 'size/s'
+        s_max_size: '100'
+        m_label: 'size/m'
+        m_max_size: '500'
+        l_label: 'size/l'
+        l_max_size: '1000'
+        xl_label: 'size/xl'
+
+  test-coverage:
+    name: Test Coverage Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install pytest pytest-cov
+    
+    - name: Run tests with coverage
+      run: |
+        pytest --cov=./ --cov-report=xml --cov-report=html
+    
+    - name: Coverage comment
+      uses: py-cov-action/python-coverage-comment-action@v3
+      with:
+        GITHUB_TOKEN: ${{ github.token }}
+        MINIMUM_GREEN: 85
+        MINIMUM_ORANGE: 70
+
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Python Dependency Check
+      uses: pyupio/safety@2.3.5
+      with:
+        api-key: ${{ secrets.SAFETY_API_KEY }}
+    
+    - name: Check for outdated dependencies
+      run: |
+        pip install pip-outdated
+        pip-outdated
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check README
+      run: |
+        # Ensure README exists and has minimum content
+        if [ ! -f "README.md" ]; then
+          echo "ERROR: README.md not found"
+          exit 1
+        fi
+    
+    - name: Check API documentation
+      run: |
+        # Ensure API docs are up to date
+        if [ -f "docs/api/openapi.yaml" ]; then
+          echo "API documentation found"
+        else
+          echo "WARNING: API documentation not found"
+        fi
+    
+    - name: Generate docs
+      run: |
+        pip install sphinx sphinx-rtd-theme
+        cd docs && make html || true

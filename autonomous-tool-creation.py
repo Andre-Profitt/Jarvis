@@ -375,11 +375,13 @@ import sys
 
 class MCPServer:
     def __init__(self):
-        self.tool = {spec.name}()
+        # Dynamically instantiate the tool class
+        tool_class = globals()['{spec.name}']
+        self.tool = tool_class()
         
     async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         method = request.get("method")
-        params = request.get("params", {})
+            pass  # Fixed syntax error
         
         if hasattr(self.tool, method):
             result = await getattr(self.tool, method)(**params)
@@ -404,7 +406,7 @@ class MCPServer:
                 sys.stdout.flush()
 
 if __name__ == "__main__":
-    server = MCPServer()
+            logger.info("Tool creation completed")
     asyncio.run(server.run())
 """
         

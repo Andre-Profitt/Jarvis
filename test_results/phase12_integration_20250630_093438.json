@@ -1,0 +1,110 @@
+{
+  "summary": {
+    "total_tests": 12,
+    "passed": 10,
+    "failed": 2,
+    "pass_rate": 83.33,
+    "total_duration": 4.14
+  },
+  "components": {
+    "Pipeline": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Pipeline', test_name='Multi-modal Input Processing', passed=True, duration=0.0027899742126464844, error=None, metrics={'inputs_tested': 3})"
+      ]
+    },
+    "State Management": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='State Management', test_name='State Transition Flow', passed=True, duration=0.30178380012512207, error=None, metrics={'transitions': 0, 'scenarios': 3})"
+      ]
+    },
+    "AI Services": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='AI Services', test_name='Multi-AI Integration', passed=True, duration=2.394991874694824, error=None, metrics={'services_tested': ['Claude: Skipped (no API key)', 'OpenAI: Active']})"
+      ]
+    },
+    "Neural Resources": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Neural Resources', test_name='Resource Allocation', passed=True, duration=1.4781951904296875e-05, error=None, metrics={'efficiency': 1.5})"
+      ]
+    },
+    "Self-Healing": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Self-Healing', test_name='Failure Detection & Recovery', passed=True, duration=0.10061788558959961, error=None, metrics={'components_monitored': 1})"
+      ]
+    },
+    "Quantum Swarm": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        "IntegrationTestResult(component='Quantum Swarm', test_name='Optimization Performance', passed=False, duration=0.2660560607910156, error='', metrics={})"
+      ]
+    },
+    "Database": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Database', test_name='Data Persistence', passed=True, duration=0.028293848037719727, error=None, metrics={'records_created': 1})"
+      ]
+    },
+    "Security": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Security', test_name='Token Authentication', passed=True, duration=0.0003027915954589844, error=None, metrics={'token_length': 297})"
+      ]
+    },
+    "Monitoring": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Monitoring', test_name='Metrics Collection', passed=True, duration=8.225440979003906e-05, error=None, metrics={'metrics_collected': 2})"
+      ]
+    },
+    "End-to-End": {
+      "passed": 0,
+      "failed": 1,
+      "tests": [
+        "IntegrationTestResult(component='End-to-End', test_name='Real-world Scenarios', passed=False, duration=0.0016491413116455078, error='', metrics={})"
+      ]
+    },
+    "Performance": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Performance', test_name='System Benchmarks', passed=True, duration=1.0423429012298584, error=None, metrics={'avg_latency_ms': 0.39, 'p95_latency_ms': 1.07, 'p99_latency_ms': 1.17, 'throughput_rps': 893})"
+      ]
+    },
+    "Resilience": {
+      "passed": 1,
+      "failed": 0,
+      "tests": [
+        "IntegrationTestResult(component='Resilience', test_name='Failure Recovery', passed=True, duration=0.0011489391326904297, error=None, metrics={'recovery_time_ms': 100})"
+      ]
+    }
+  },
+  "failed_tests": [
+    {
+      "component": "Quantum Swarm",
+      "test": "Optimization Performance",
+      "error": ""
+    },
+    {
+      "component": "End-to-End",
+      "test": "Real-world Scenarios",
+      "error": ""
+    }
+  ],
+  "performance_metrics": {
+    "avg_test_duration": 0.35
+  }
+}

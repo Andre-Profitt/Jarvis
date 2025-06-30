@@ -1,0 +1,38 @@
+{
+  "version": "2.0",
+  "available_models": [
+    {
+      "name": "claude-desktop",
+      "provider": "anthropic",
+      "model": "claude-desktop",
+      "max_tokens": 200000,
+      "notes": "Via Claude Desktop MCP integration"
+    },
+    {
+      "name": "gpt4",
+      "provider": "openai",
+      "model": "gpt-4-turbo-preview",
+      "max_tokens": 128000,
+      "api_key_env": "OPENAI_API_KEY"
+    },
+    {
+      "name": "gemini",
+      "provider": "google",
+      "model": "gemini-1.5-pro",
+      "max_tokens": 2097152,
+      "api_key_env": "GEMINI_API_KEY"
+    }
+  ],
+  "default_model": "gpt4",
+  "fallback_chain": [
+    "claude-desktop",
+    "gpt4",
+    "gemini"
+  ],
+  "voice_enabled": true,
+  "voice_config": {
+    "provider": "elevenlabs",
+    "enabled": true,
+    "api_key_env": "ELEVENLABS_API_KEY"
+  }
+}

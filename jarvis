@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""
+JARVIS - One Click Launch
+Just run: ./jarvis
+"""
+
+import subprocess
+import sys
+
+# Launch the beautiful new interface
+subprocess.run([sys.executable, "jarvis_beautiful_launcher.py"])

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Phase 1 Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #050505;
+            color: #fff;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+        
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #222;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: 300;
+            background: linear-gradient(45deg, #00a8ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: #333;
+            transform: translateY(-2px);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #888;
+        }
+        
+        /* State Visualization */
+        .state-item {
+            margin-bottom: 15px;
+        }
+        
+        .state-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .state-bar {
+            height: 8px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .state-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .state-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -20px;
+            width: 20px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { right: -20px; }
+            100% { right: 100%; }
+        }
+        
+        /* State colors */
+        .state-stress { background: linear-gradient(90deg, #ff0055, #ff3366); }
+        .state-focus { background: linear-gradient(90deg, #00a8ff, #0066ff); }
+        .state-energy { background: linear-gradient(90deg, #00ff88, #00cc66); }
+        .state-mood { background: linear-gradient(90deg, #ff00ff, #8800ff); }
+        .state-creativity { background: linear-gradient(90deg, #ffaa00, #ff6600); }
+        .state-productivity { background: linear-gradient(90deg, #00ffff, #0099ff); }
+        .state-social { background: linear-gradient(90deg, #ff69b4, #ff1493); }
+        .state-health { background: linear-gradient(90deg, #32cd32, #228b22); }
+        
+        /* Response Mode */
+        .mode-indicator {
+            padding: 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #0a0a0a, #111);
+            border-radius: 12px;
+            border: 2px solid #1a1a1a;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-name {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .mode-description {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .mode-EMERGENCY { 
+            border-color: #ff0055; 
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
+        }
+        .mode-EMERGENCY .mode-name { color: #ff0055; }
+        
+        .mode-PROACTIVE { 
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+        .mode-PROACTIVE .mode-name { color: #00ff88; }
+        
+        .mode-BACKGROUND { 
+            border-color: #00a8ff;
+            box-shadow: 0 0 20px rgba(0, 168, 255, 0.3);
+        }
+        .mode-BACKGROUND .mode-name { color: #00a8ff; }
+        
+        .mode-COLLABORATIVE { 
+            border-color: #ffaa00;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
+        }
+        .mode-COLLABORATIVE .mode-name { color: #ffaa00; }
+        
+        /* Pipeline Visualization */
+        .pipeline-viz {
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+            background: #0a0a0a;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .pipeline-item {
+            position: absolute;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            white-space: nowrap;
+            animation: flow 5s linear;
+            opacity: 0;
+        }
+        
+        @keyframes flow {
+            0% {
+                left: -150px;
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                opacity: 0;
+            }
+        }
+        
+        .priority-CRITICAL { background: #ff0055; }
+        .priority-URGENT { background: #ff6b00; }
+        .priority-HIGH { background: #ffaa00; }
+        .priority-NORMAL { background: #00a8ff; }
+        .priority-LOW { background: #666; }
+        
+        /* Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: #111;
+            border-radius: 8px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 200;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Connection status */
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff0055;
+        }
+        
+        .connection-dot.connected {
+            background: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <h1>JARVIS Phase 1 Monitor</h1>
+            <div class="status-badge">
+                <div class="status-indicator"></div>
+                <span>System Active</span>
+            </div>
+        </div>
+        
+        <!-- Main Grid -->
+        <div class="grid">
+            <!-- State Management Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Fluid States</h2>
+                </div>
+                <div id="state-container">
+                    <!-- States will be dynamically added here -->
+                </div>
+            </div>
+            
+            <!-- Response Mode Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Response Mode</h2>
+                </div>
+                <div class="mode-indicator mode-COLLABORATIVE" id="mode-indicator">
+                    <div class="mode-name" id="mode-name">COLLABORATIVE</div>
+                    <div class="mode-description" id="mode-description">Normal interaction mode</div>
+                </div>
+            </div>
+            
+            <!-- Input Pipeline Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Input Pipeline</h2>
+                </div>
+                <div class="pipeline-viz" id="pipeline-viz">
+                    <!-- Dynamic pipeline items will appear here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Metrics Section -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Performance Metrics</h2>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value" id="latency">0ms</div>
+                    <div class="metric-label">Avg Latency</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="processed">0</div>
+                    <div class="metric-label">Processed</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="queue-size">0</div>
+                    <div class="metric-label">Queue Size</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="mode-changes">0</div>
+                    <div class="metric-label">Mode Changes</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Connection Status -->
+    <div class="connection-status">
+        <div class="connection-dot" id="connection-dot"></div>
+        <span id="connection-text">Connecting...</span>
+    </div>
+    
+    <script>
+        // WebSocket connection for real-time updates
+        let ws = null;
+        let reconnectInterval = null;
+        
+        // State definitions
+        const states = [
+            'stress', 'focus', 'energy', 'mood', 
+            'creativity', 'productivity', 'social', 'health'
+        ];
+        
+        // Initialize state display
+        function initializeStates() {
+            const container = document.getElementById('state-container');
+            states.forEach(state => {
+                const stateItem = document.createElement('div');
+                stateItem.className = 'state-item';
+                stateItem.innerHTML = `
+                    <div class="state-label">
+                        <span>${state.charAt(0).toUpperCase() + state.slice(1)}</span>
+                        <span id="${state}-value">0.50</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill state-${state}" id="${state}-bar" style="width: 50%"></div>
+                    </div>
+                `;
+                container.appendChild(stateItem);
+            });
+        }
+        
+        // Connect to WebSocket
+        function connect() {
+            // Try to connect to JARVIS WebSocket server
+            try {
+                ws = new WebSocket('ws://localhost:8765');
+                
+                ws.onopen = () => {
+                    console.log('Connected to JARVIS');
+                    document.getElementById('connection-dot').classList.add('connected');
+                    document.getElementById('connection-text').textContent = 'Connected';
+                    
+                    // Clear reconnect interval
+                    if (reconnectInterval) {
+                        clearInterval(reconnectInterval);
+                        reconnectInterval = null;
+                    }
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    updateDashboard(data);
+                };
+                
+                ws.onclose = () => {
+                    console.log('Disconnected from JARVIS');
+                    document.getElementById('connection-dot').classList.remove('connected');
+                    document.getElementById('connection-text').textContent = 'Disconnected';
+                    
+                    // Try to reconnect
+                    if (!reconnectInterval) {
+                        reconnectInterval = setInterval(connect, 5000);
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+                
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                
+                // Fallback to simulation mode
+                if (!reconnectInterval) {
+                    simulateData();
+                }
+            }
+        }
+        
+        // Update dashboard with received data
+        function updateDashboard(data) {
+            // Update states
+            if (data.states) {
+                Object.entries(data.states).forEach(([state, value]) => {
+                    updateState(state, value);
+                });
+            }
+            
+            // Update mode
+            if (data.mode) {
+                updateMode(data.mode, data.modeDescription || '');
+            }
+            
+            // Update metrics
+            if (data.metrics) {
+                updateMetrics(data.metrics);
+            }
+            
+            // Update pipeline
+            if (data.input) {
+                addPipelineItem(data.input);
+            }
+        }
+        
+        // Update individual state
+        function updateState(state, value) {
+            const bar = document.getElementById(`${state}-bar`);
+            const valueSpan = document.getElementById(`${state}-value`);
+            
+            if (bar && valueSpan) {
+                bar.style.width = (value * 100) + '%';
+                valueSpan.textContent = value.toFixed(2);
+            }
+        }
+        
+        // Update response mode
+        function updateMode(mode, description) {
+            const indicator = document.getElementById('mode-indicator');
+            const nameEl = document.getElementById('mode-name');
+            const descEl = document.getElementById('mode-description');
+            
+            // Remove all mode classes
+            indicator.className = 'mode-indicator';
+            indicator.classList.add(`mode-${mode}`);
+            
+            nameEl.textContent = mode;
+            descEl.textContent = description;
+        }
+        
+        // Update metrics
+        function updateMetrics(metrics) {
+            if (metrics.latency !== undefined) {
+                document.getElementById('latency').textContent = Math.round(metrics.latency * 1000) + 'ms';
+            }
+            if (metrics.processed !== undefined) {
+                document.getElementById('processed').textContent = metrics.processed;
+            }
+            if (metrics.queueSize !== undefined) {
+                document.getElementById('queue-size').textContent = metrics.queueSize;
+            }
+            if (metrics.modeChanges !== undefined) {
+                document.getElementById('mode-changes').textContent = metrics.modeChanges;
+            }
+        }
+        
+        // Add pipeline item animation
+        function addPipelineItem(input) {
+            const viz = document.getElementById('pipeline-viz');
+            const item = document.createElement('div');
+            item.className = 'pipeline-item';
+            item.classList.add(`priority-${input.priority || 'NORMAL'}`);
+            item.textContent = input.type || 'UNKNOWN';
+            item.style.top = Math.random() * 120 + 'px';
+            
+            viz.appendChild(item);
+            
+            // Remove after animation
+            setTimeout(() => item.remove(), 5000);
+        }
+        
+        // Simulate data for demo purposes
+        function simulateData() {
+            console.log('Running in simulation mode');
+            
+            // Simulate state updates
+            setInterval(() => {
+                states.forEach(state => {
+                    const currentValue = parseFloat(document.getElementById(`${state}-value`).textContent);
+                    const change = (Math.random() - 0.5) * 0.1;
+                    const newValue = Math.max(0, Math.min(1, currentValue + change));
+                    updateState(state, newValue);
+                });
+                
+                // Occasionally change mode
+                if (Math.random() < 0.1) {
+                    const modes = ['BACKGROUND', 'COLLABORATIVE', 'PROACTIVE', 'SUPPORTIVE'];
+                    const mode = modes[Math.floor(Math.random() * modes.length)];
+                    const descriptions = {
+                        'BACKGROUND': 'Flow state - minimal intervention',
+                        'COLLABORATIVE': 'Normal interaction mode',
+                        'PROACTIVE': 'Helpful suggestions active',
+                        'SUPPORTIVE': 'Emotional support mode'
+                    };
+                    updateMode(mode, descriptions[mode]);
+                }
+                
+                // Add pipeline items
+                if (Math.random() < 0.3) {
+                    const types = ['VOICE', 'BIOMETRIC', 'TEXT', 'VISION'];
+                    const priorities = ['CRITICAL', 'URGENT', 'HIGH', 'NORMAL', 'LOW'];
+                    addPipelineItem({
+                        type: types[Math.floor(Math.random() * types.length)],
+                        priority: priorities[Math.floor(Math.random() * priorities.length)]
+                    });
+                }
+                
+                // Update metrics
+                updateMetrics({
+                    latency: Math.random() * 0.05,
+                    processed: parseInt(document.getElementById('processed').textContent) + Math.floor(Math.random() * 3),
+                    queueSize: Math.floor(Math.random() * 10),
+                    modeChanges: parseInt(document.getElementById('mode-changes').textContent)
+                });
+                
+            }, 1000);
+        }
+        
+        // Initialize
+        initializeStates();
+        connect();
+    </script>
+</body>
+</html>

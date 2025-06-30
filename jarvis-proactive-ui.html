@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS - Proactive AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Main Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr 380px;
+            height: 100vh;
+            gap: 1px;
+            background: #1a1a1a;
+        }
+
+        /* Left Panel - Real-time Metrics */
+        .metrics-panel {
+            background: #0f0f0f;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .metric-card {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #2a2a2a;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            border-color: #4a9eff;
+            transform: translateY(-2px);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .metric-status {
+            font-size: 14px;
+            color: #4a9eff;
+        }
+
+        .metric-status.warning {
+            color: #ff9f40;
+        }
+
+        .metric-status.critical {
+            color: #ff4757;
+        }
+
+        /* Center - Live View */
+        .live-view {
+            background: #050505;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .overlay-metrics {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            right: 24px;
+            display: flex;
+            gap: 16px;
+        }
+
+        .overlay-metric {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .overlay-metric-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #4a9eff, #0066ff);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .overlay-metric-text {
+            font-size: 14px;
+            color: #fff;
+        }
+
+        /* Right Panel - Interventions */
+        .interventions-panel {
+            background: #0f0f0f;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .intervention {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #2a2a4e;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .intervention-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .intervention-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4a9eff, #0066ff);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .intervention-time {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .intervention-message {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #fff;
+        }
+
+        /* Bottom Control Bar */
+        .control-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .control-btn {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            background: #2a2a2a;
+            border-color: #4a9eff;
+            transform: translateY(-2px);
+        }
+
+        .control-btn.primary {
+            background: linear-gradient(135deg, #4a9eff, #0066ff);
+            border: none;
+        }
+
+        .control-btn.primary:hover {
+            background: linear-gradient(135deg, #5aafff, #1176ff);
+        }
+
+        /* Status Indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: statusPulse 2s infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* Schedule Timeline */
+        .schedule-timeline {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 24px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .timeline-item:last-child {
+            border: none;
+        }
+
+        .timeline-time {
+            font-size: 14px;
+            color: #4a9eff;
+            font-weight: 500;
+            min-width: 80px;
+        }
+
+        .timeline-event {
+            font-size: 14px;
+            color: #fff;
+        }
+
+        /* Emotional State Visualization */
+        .emotion-viz {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 16px;
+            border: 1px solid #2a2a2a;
+            text-align: center;
+        }
+
+        .emotion-face {
+            font-size: 64px;
+            margin: 16px 0;
+        }
+
+        .emotion-label {
+            font-size: 16px;
+            color: #4a9eff;
+            font-weight: 500;
+        }
+
+        /* Performance Score */
+        .performance-ring {
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .performance-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .performance-ring-bg {
+            fill: none;
+            stroke: #2a2a2a;
+            stroke-width: 8;
+        }
+
+        .performance-ring-progress {
+            fill: none;
+            stroke: url(#gradient);
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .performance-ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: 600;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel - Real-time Metrics -->
+        <div class="metrics-panel">
+            <h2 style="font-size: 20px; margin-bottom: 24px; color: #fff;">Real-time Metrics</h2>
+            
+            <div class="metric-card">
+                <div class="metric-label">Speaking Pace</div>
+                <div class="metric-value">147 <span style="font-size: 16px; color: #888;">WPM</span></div>
+                <div class="metric-status warning">3% slower than target</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Stress Level</div>
+                <div class="metric-value">42<span style="font-size: 16px; color: #888;">%</span></div>
+                <div class="metric-status">Slightly elevated</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Engagement Score</div>
+                <div class="metric-value">8.5<span style="font-size: 16px; color: #888;">/10</span></div>
+                <div class="metric-status">Above average</div>
+            </div>
+            
+            <div class="emotion-viz">
+                <div class="metric-label">Current Emotion</div>
+                <div class="emotion-face">😐</div>
+                <div class="emotion-label">Focused</div>
+            </div>
+            
+            <div class="schedule-timeline">
+                <div class="metric-label">Upcoming</div>
+                <div class="timeline-item">
+                    <div class="timeline-time">3:42 PM</div>
+                    <div class="timeline-event">Paddle training</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-time">5:00 PM</div>
+                    <div class="timeline-event">Team meeting</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-time">7:00 PM</div>
+                    <div class="timeline-event">Dinner reservation</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Center - Live View -->
+        <div class="live-view">
+            <div class="video-container">
+                <div style="text-align: center; color: #666;">
+                    <div style="font-size: 72px; margin-bottom: 20px;">👁️</div>
+                    <div style="font-size: 18px;">Live Monitoring Active</div>
+                    <div style="font-size: 14px; margin-top: 8px; color: #888;">Camera feed would appear here</div>
+                </div>
+                
+                <div class="overlay-metrics">
+                    <div class="overlay-metric">
+                        <div class="overlay-metric-icon">🎯</div>
+                        <div class="overlay-metric-text">Recording Mode</div>
+                    </div>
+                    <div class="overlay-metric">
+                        <div class="overlay-metric-icon">⏱️</div>
+                        <div class="overlay-metric-text">0:45 / 1:00</div>
+                    </div>
+                    <div class="overlay-metric">
+                        <div class="overlay-metric-icon">📊</div>
+                        <div class="overlay-metric-text">Performance: 85%</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-bar">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <div class="status-text">JARVIS Active • Monitoring all systems</div>
+                </div>
+                
+                <div class="control-buttons">
+                    <button class="control-btn">Pause Monitoring</button>
+                    <button class="control-btn">Settings</button>
+                    <button class="control-btn primary">End Session</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Panel - Interventions -->
+        <div class="interventions-panel">
+            <h2 style="font-size: 20px; margin-bottom: 24px; color: #fff;">Proactive Interventions</h2>
+            
+            <div class="intervention">
+                <div class="intervention-header">
+                    <div class="intervention-icon">💡</div>
+                    <div class="intervention-time">Just now</div>
+                </div>
+                <div class="intervention-message">
+                    You're 3% slower than rehearsal. Pacing correction recommended. Remember, videos under 60 seconds get 34% more engagement.
+                </div>
+            </div>
+            
+            <div class="intervention">
+                <div class="intervention-header">
+                    <div class="intervention-icon">📅</div>
+                    <div class="intervention-time">2 min ago</div>
+                </div>
+                <div class="intervention-message">
+                    Speaking of anticipation, you're due for paddle training in 42 minutes.
+                </div>
+            </div>
+            
+            <div class="intervention">
+                <div class="intervention-header">
+                    <div class="intervention-icon">🧘</div>
+                    <div class="intervention-time">5 min ago</div>
+                </div>
+                <div class="intervention-message">
+                    The current tone lacks emotional warmth. You're tracking as lightly stressed. Breathe in through your nose, out through your mouth.
+                </div>
+            </div>
+            
+            <div class="intervention">
+                <div class="intervention-header">
+                    <div class="intervention-icon">🧀</div>
+                    <div class="intervention-time">10 min ago</div>
+                </div>
+                <div class="intervention-message">
+                    Also, the cheese cubes from catering, hmm, bad choice. You're still lactose intolerant.
+                </div>
+            </div>
+            
+            <div class="performance-ring">
+                <svg width="120" height="120">
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#4a9eff" />
+                            <stop offset="100%" stop-color="#0066ff" />
+                        </linearGradient>
+                    </defs>
+                    <circle cx="60" cy="60" r="52" class="performance-ring-bg" />
+                    <circle cx="60" cy="60" r="52" class="performance-ring-progress" 
+                            stroke-dasharray="326.56" stroke-dashoffset="49" />
+                </svg>
+                <div class="performance-ring-text">85%</div>
+            </div>
+            <div style="text-align: center; color: #888; font-size: 14px; margin-top: -8px;">
+                Overall Performance
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // WebSocket connection for real-time updates
+        let ws;
+        
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8765');
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                updateMetrics(data.metrics);
+                
+                if (data.intervention) {
+                    addIntervention(data.intervention);
+                }
+            };
+            
+            ws.onerror = () => {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        function updateMetrics(metrics) {
+            // Update UI with real-time metrics
+            if (metrics.speaking_pace) {
+                document.querySelector('.metric-value').textContent = 
+                    Math.round(metrics.speaking_pace) + ' WPM';
+            }
+        }
+        
+        function addIntervention(intervention) {
+            const panel = document.querySelector('.interventions-panel');
+            const newIntervention = document.createElement('div');
+            newIntervention.className = 'intervention';
+            newIntervention.innerHTML = `
+                <div class="intervention-header">
+                    <div class="intervention-icon">💡</div>
+                    <div class="intervention-time">Just now</div>
+                </div>
+                <div class="intervention-message">${intervention.message}</div>
+            `;
+            
+            // Insert after the title
+            panel.insertBefore(newIntervention, panel.children[1]);
+        }
+        
+        // Simulate real-time updates for demo
+        setInterval(() => {
+            // Update speaking pace
+            const pace = 140 + Math.random() * 20;
+            document.querySelector('.metric-value').innerHTML = 
+                `${Math.round(pace)} <span style="font-size: 16px; color: #888;">WPM</span>`;
+            
+            // Update stress level
+            const stress = 30 + Math.random() * 30;
+            document.querySelectorAll('.metric-value')[1].innerHTML = 
+                `${Math.round(stress)}<span style="font-size: 16px; color: #888;">%</span>`;
+        }, 3000);
+        
+        // Try to connect to WebSocket
+        // connectWebSocket();
+    </script>
+</body>
+</html>

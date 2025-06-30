@@ -102,11 +102,10 @@ async def mock_database():
     
     # Use in-memory SQLite for tests
     db = DatabaseManager(":memory:")
-    await db.initialize()
     
     yield db
     
-    await db.close()
+    # No need to close as SQLite in-memory DB is automatically cleaned up
 
 
 @pytest.fixture
