@@ -51,7 +51,8 @@ class JARVISActivator:
         
         for module in core_modules:
             try:
-                exec(f"from core.{module} import *")
+                # Secure import without exec()
+                core_module = __import__(f"core.{module}", fromlist=['*'])
                 working.append(module)
             except:
                 broken.append(module)

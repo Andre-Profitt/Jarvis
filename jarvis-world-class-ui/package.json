@@ -1,0 +1,26 @@
+{
+  "name": "jarvis-world-class-ui",
+  "version": "1.0.0",
+  "description": "The Future of Human-Computer Interaction",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "analyze": "ANALYZE=true next build"
+  },
+  "dependencies": {
+    "next": "14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.159.0",
+    "@react-three/fiber": "^8.15.0",
+    "@react-three/drei": "^9.92.0",
+    "framer-motion": "^10.16.0",
+    "zustand": "^4.4.0",
+    "@tanstack/react-query": "^5.0.0",
+    "million": "^2.6.0",
+    "gsap": "^3.12.0",
+    "@mediapipe/hands": "^0.4.0",
+    "socket.io-client": "^4.6.0"
+  }
+}

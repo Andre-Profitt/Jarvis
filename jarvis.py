@@ -91,16 +91,21 @@ def main():
     print("   • JARVIS learns your patterns over time")
     print("   • Press Ctrl+C to stop\n")
     
-    # Import and run the seamless version
+    # Import and run the working version
     try:
+        # Try seamless v2 first
         from jarvis_seamless_v2 import IntelligentJARVIS
-        
-        # Start JARVIS
         jarvis = IntelligentJARVIS()
         
         # Keep running
         while True:
             time.sleep(0.1)
+    except ImportError:
+        # Fallback to minimal working version
+        print("Loading minimal version...")
+        from jarvis_minimal_working import JARVISMinimal
+        jarvis = JARVISMinimal()
+        jarvis.run('auto')
             
     except KeyboardInterrupt:
         print("\n\n👋 JARVIS shutting down. See you soon!")

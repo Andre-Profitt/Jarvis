@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JARVIS Elite UI</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #001428;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        #jarvis-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        .holographic {
+            color: #00D9FF;
+            text-shadow: 0 0 10px #00D9FF, 0 0 20px #00D9FF;
+            animation: flicker 2s infinite;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.9; }
+        }
+        #voice-viz {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;700&family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="jarvis-container"></div>
+    <div id="voice-viz">
+        <svg width="200" height="100" class="holographic">
+            <path id="voice-wave" d="M0,50 Q50,30 100,50 T200,50" fill="none" stroke="#00D9FF" stroke-width="2"/>
+        </svg>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Initialize JARVIS Elite UI
+        console.log("🎯 JARVIS Elite UI Initializing...");
+        
+        // Three.js Scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('jarvis-container').appendChild(renderer.domElement);
+
+        // Holographic panel
+        const geometry = new THREE.BoxGeometry(2, 1, 0.1);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0x00D9FF, 
+            transparent: true, 
+            opacity: 0.3,
+            wireframe: true
+        });
+        const panel = new THREE.Mesh(geometry, material);
+        scene.add(panel);
+
+        camera.position.z = 5;
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+            panel.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Voice visualization
+        if ('webkitSpeechRecognition' in window) {
+            console.log("✅ Voice recognition available");
+        }
+
+        console.log("✨ JARVIS Elite UI Ready");
+        console.log("🎤 Say 'JARVIS' to activate");
+    </script>
+</body>
+</html>

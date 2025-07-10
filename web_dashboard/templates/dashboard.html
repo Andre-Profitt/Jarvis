@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Dashboard</title>
+    
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-robot"></i> JARVIS Dashboard
+            </a>
+            <div class="d-flex align-items-center">
+                <span id="connection-status" class="badge bg-danger me-3">
+                    <i class="fas fa-circle"></i> Disconnected
+                </span>
+                <span id="jarvis-status" class="badge bg-secondary">
+                    <i class="fas fa-power-off"></i> Offline
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-5 pt-4">
+        <div class="row">
+            <!-- Left Column - Status & Control -->
+            <div class="col-lg-3">
+                <!-- Status Card -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-info-circle"></i> Status
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Listening Mode</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="listening-toggle">
+                                <label class="form-check-label" for="listening-toggle">
+                                    <span id="listening-status">Inactive</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Voice Activity</label>
+                            <div class="voice-indicator" id="voice-indicator">
+                                <i class="fas fa-microphone"></i>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Quick Stats -->
+                        <div class="quick-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-brain"></i>
+                                <span id="active-agents">0</span>
+                                <small>Agents</small>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span id="response-time">0</span>ms
+                                <small>Response</small>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-memory"></i>
+                                <span id="memory-usage">0</span>MB
+                                <small>Memory</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Input -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-terminal"></i> Remote Command
+                    </div>
+                    <div class="card-body">
+                        <form id="command-form">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="command-input" 
+                                       placeholder="Type command...">
+                                <button class="btn btn-success" type="submit">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- AI Predictions -->
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <i class="fas fa-crystal-ball"></i> AI Predictions
+                    </div>
+                    <div class="card-body">
+                        <div id="predictions-list" class="predictions-list">
+                            <p class="text-muted">No predictions available</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column - Command History -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-history"></i> Command History</span>
+                        <button class="btn btn-sm btn-outline-light" id="clear-history">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+                    <div class="card-body command-history" id="command-history">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-comments fa-3x mb-3"></i>
+                            <p>No commands yet. Start talking to JARVIS!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Metrics & Integrations -->
+            <div class="col-lg-3">
+                <!-- System Metrics -->
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">
+                        <i class="fas fa-chart-line"></i> System Metrics
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-item">
+                            <label>CPU Usage</label>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" id="cpu-bar" 
+                                     role="progressbar" style="width: 0%">0%</div>
+                            </div>
+                        </div>
+                        
+                        <div class="metric-item mt-3">
+                            <label>Memory Usage</label>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" id="memory-bar" 
+                                     role="progressbar" style="width: 0%">0MB</div>
+                            </div>
+                        </div>
+                        
+                        <div class="metric-item mt-3">
+                            <label>Response Time</label>
+                            <canvas id="response-chart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Home Status -->
+                <div class="card mb-3">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-home"></i> Smart Home
+                    </div>
+                    <div class="card-body">
+                        <div id="smart-home-devices">
+                            <p class="text-muted">No devices connected</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Preview -->
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-calendar"></i> Upcoming Events
+                    </div>
+                    <div class="card-body">
+                        <div id="calendar-events">
+                            <p class="text-muted">No upcoming events</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

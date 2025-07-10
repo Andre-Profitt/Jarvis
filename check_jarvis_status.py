@@ -39,8 +39,12 @@ packages = {
 
 for package, name in packages.items():
     try:
+        # Secure import without exec()
         if '.' in package:
-            exec(f"import {package}")
+            parts = package.split('.')
+            module = __import__(parts[0])
+            for part in parts[1:]:
+                module = getattr(module, part)
         else:
             __import__(package)
         print(f"  ✅ {name}")

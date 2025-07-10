@@ -420,9 +420,30 @@ class MockToolExecutor:
     async def _calculator(self, params: Dict[str, Any]) -> float:
         """Mock calculator tool"""
         expression = params.get("expression", "0")
-        # Simple evaluation for testing
+        # Safe evaluation for testing - only basic math
         try:
-            return eval(expression, {"__builtins__": {}}, {})
+            # Parse simple math expressions safely
+            import ast
+            import operator
+            
+            ops = {
+                ast.Add: operator.add,
+                ast.Sub: operator.sub,
+                ast.Mult: operator.mul,
+                ast.Div: operator.truediv,
+                ast.Pow: operator.pow
+            }
+            
+            def eval_expr(expr):
+                if isinstance(expr, ast.Num):
+                    return expr.n
+                elif isinstance(expr, ast.BinOp):
+                    return ops[type(expr.op)](eval_expr(expr.left), eval_expr(expr.right))
+                else:
+                    raise ValueError("Unsupported expression")
+            
+            tree = ast.parse(expression, mode='eval')
+            return eval_expr(tree.body)
         except:
             return 0.0
     
