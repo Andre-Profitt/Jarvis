@@ -1,0 +1,24 @@
+# JARVIS Configuration Example
+# Copy this to config.yaml and fill in your API keys
+
+# AI Model Settings
+ai:
+  # Get key from: https://platform.openai.com/api-keys
+  openai_api_key: "sk-..."
+  
+  # Get key from: https://console.anthropic.com/
+  anthropic_api_key: "sk-ant-..."
+  
+  # Get key from: https://makersuite.google.com/app/apikey
+  google_api_key: "AIza..."
+
+# Voice Settings
+voice:
+  # Get key from: https://elevenlabs.io/
+  elevenlabs_api_key: "..."
+  
+# Plugin Settings
+plugins:
+  weather:
+    # Get key from: https://openweathermap.org/api
+    api_key: "..."

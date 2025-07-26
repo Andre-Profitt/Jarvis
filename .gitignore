@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Data & Logs
+logs/
+data/
+*.log
+*.db
+*.sqlite
+
+# API Keys
+.env
+config.yaml
+!config.example.yaml
+
+# ML Models
+models/
+*.pt
+*.pth
+*.pkl
+*.h5
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Build
+build/
+dist/
+*.egg-info/
+*.egg
